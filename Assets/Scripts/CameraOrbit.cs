@@ -45,10 +45,13 @@ public class CameraOrbit : MonoBehaviour
     {
         if (target)
         {
-            x += Input.GetAxis("Mouse X") * xSpeed * Time.deltaTime;
-            y -= Input.GetAxis("Mouse Y") * ySpeed * Time.deltaTime;
+            if (!Input.GetKey(KeyCode.Tab))
+            {
+                x += Input.GetAxis("Mouse X") * xSpeed * Time.deltaTime;
+                y -= Input.GetAxis("Mouse Y") * ySpeed * Time.deltaTime;
 
-            y = ClampAngle(y, yMinLimit, yMaxLimit); // „O„s„‚„p„~„y„‰„y„r„p„u„} „r„u„‚„„„y„{„p„|„„~„„z „…„s„€„| „€„q„x„€„‚„p
+                y = ClampAngle(y, yMinLimit, yMaxLimit); // „O„s„‚„p„~„y„‰„y„r„p„u„} „r„u„‚„„„y„{„p„|„„~„„z „…„s„€„| „€„q„x„€„‚„p
+            }
 
             Quaternion rotation = Quaternion.Euler(y, x, 0);
             Vector3 negDistance = new Vector3(0.0f, 0.0f, -distance);
