@@ -2597,8 +2597,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 1695181763}
   distance: 3
-  xSpeed: 240
-  ySpeed: 240
+  xSpeed: 80
+  ySpeed: 80
   yMinLimit: -20
   yMaxLimit: 80
   characterMovement: {fileID: 3224196935626279051}
