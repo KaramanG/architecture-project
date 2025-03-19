@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2684919694192850908}
   - component: {fileID: 2684919694191883548}
   - component: {fileID: 2684919694184133148}
+  - component: {fileID: -5242777231872686428}
   m_Layer: 0
   m_Name: RockMesh
   m_TagString: Untagged
@@ -99,3 +100,24 @@ Animation:
   m_PlayAutomatically: 1
   m_AnimatePhysics: 0
   m_CullingType: 0
+--- !u!65 &-5242777231872686428
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2684919694194076636}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.165763, y: 1.9342389, z: 2.3850808}
+  m_Center: {x: -0.040125728, y: 0.96832895, z: -0.19579223}
