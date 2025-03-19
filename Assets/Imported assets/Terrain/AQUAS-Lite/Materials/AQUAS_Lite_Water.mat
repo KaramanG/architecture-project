@@ -78,7 +78,7 @@ Material:
     m_Floats:
     - _BumpScale: 1
     - _Cutoff: 0.5
-    - _Density: 0.061
+    - _Density: 0.16
     - _DepthTransparency: 0.45
     - _DetailNormalMapScale: 1
     - _DistanceFade: 0.5
