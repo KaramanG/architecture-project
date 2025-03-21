@@ -121,7 +121,7 @@ NavMeshSettings:
     preserveTilesOutsideBounds: 0
     debug:
       m_Flags: 0
-  m_NavMeshData: {fileID: 0}
+  m_NavMeshData: {fileID: 23800000, guid: a0ac288c8cf5d284794e475a85907572, type: 2}
 --- !u!1 &92170029
 GameObject:
   m_ObjectHideFlags: 0
@@ -1659,7 +1659,7 @@ Transform:
   m_GameObject: {fileID: 919132149163418008}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.99886864, z: -0, w: -0.047556076}
-  m_LocalPosition: {x: 10.773703, y: 0.00000023841858, z: 6.5171585}
+  m_LocalPosition: {x: 10.8, y: 0.00000023841858, z: 21.22}
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -1935,6 +1935,8 @@ GameObject:
   - component: {fileID: 919132149163418009}
   - component: {fileID: 919132149163418011}
   - component: {fileID: 919132149163418010}
+  - component: {fileID: 919132149163418012}
+  - component: {fileID: 919132149163418013}
   m_Layer: 0
   m_Name: Zondgbe
   m_TagString: Untagged
@@ -2013,6 +2015,42 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!195 &919132149163418012
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132149163418008}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &919132149163418013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132149163418008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d559aebf380ba714b8ed59bb21d42ee3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 1
+  stoppingDistance: 1.5
 --- !u!1 &1020498243554450197
 GameObject:
   m_ObjectHideFlags: 0
@@ -3926,7 +3964,7 @@ GameObject:
   - component: {fileID: 3224196935626279051}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4308,6 +4346,8 @@ MonoBehaviour:
   fireballPrefab: {fileID: 2826741919589672186, guid: f197c74610f8c20479fe1f125a00f097, type: 3}
   fireballForce: 3
   fireballSpawnOffset: {x: 0, y: 0.6, z: 0}
+  maxHealth: 100
+  health: 100
   isActuallyJumping: 0
 --- !u!54 &3224196935626279052
 Rigidbody:
@@ -5748,7 +5788,7 @@ Transform:
   m_GameObject: {fileID: 5308958708240954578}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
-  m_LocalPosition: {x: 11.661661, y: 0.000000059604645, z: 6.467876}
+  m_LocalPosition: {x: 15.34, y: 0.000000059604645, z: 10.18}
   m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -6114,6 +6154,7 @@ GameObject:
   - component: {fileID: 5308958708240954579}
   - component: {fileID: 5308958708240954581}
   - component: {fileID: 5308958708240954580}
+  - component: {fileID: 5308958708240954582}
   m_Layer: 0
   m_Name: Babka
   m_TagString: Untagged
@@ -6192,6 +6233,28 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!195 &5308958708240954582
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5308958708240954578}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!4 &5351788810196484822
 Transform:
   m_ObjectHideFlags: 0
