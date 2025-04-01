@@ -11,9 +11,13 @@ public class CharacterMovement : MonoBehaviour
     public float jumpForce = 7f;
     public float groundCheckDistance = 0.1f;
 
-    public GameObject fireballPrefab; 
-    public float fireballForce = 20f; 
-    public Vector3 fireballSpawnOffset = Vector3.zero; 
+    public GameObject fireballPrefab;
+    public float fireballForce = 20f;
+    public Vector3 fireballSpawnOffset = Vector3.zero;
+
+    // Система здоровья
+    public float maxHealth = 100f; // Максимальное здоровье
+    public float health;           // Текущее здоровье, делаем public для наблюдения в инспекторе, но лучше использовать свойство для контроля доступа
 
     private Transform cameraTransform;
     private Animator animator;
@@ -23,8 +27,17 @@ public class CharacterMovement : MonoBehaviour
     private bool isRunning = false;
     private bool isAttacking = false;
     private bool isMagicAttacking = false;
+    private bool isDead = false; // Добавляем флаг смерти
 
     public bool isActuallyJumping = false;
+
+    // Свойство для доступа к здоровью извне, но с защитой от прямой записи (опционально, но хорошая практика)
+    public float Health
+    {
+        get { return health; }
+        private set { health = value; } // Теперь здоровье можно менять только внутри этого класса
+    }
+
 
     void Start()
     {
@@ -55,17 +68,24 @@ public class CharacterMovement : MonoBehaviour
             enabled = false;
             return;
         }
+
+        // Инициализация здоровья при старте игры
+        Health = maxHealth; // Используем свойство для установки начального значения
     }
 
     void FixedUpdate()
     {
         RaycastHit hit;
         isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance + 0.1f);
-      
+
     }
 
     void Update()
     {
+        // Если персонаж мертв, не позволяем ему двигаться или атаковать
+        CheckHealth();
+        if (isDead) return;
+
         bool isMoving = false;
         bool isMovingBack = false;
         isRunning = false;
@@ -159,19 +179,19 @@ public class CharacterMovement : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && !isAttacking && !isMagicAttacking && isGrounded)
         {
 
-            RotateTowardsCamera(true); 
+            RotateTowardsCamera(true);
             isAttacking = true;
             animator.SetTrigger("Attack");
         }
 
-        
+
         if (Input.GetMouseButtonDown(1) && !isMagicAttacking && !isAttacking && isGrounded)
         {
-            
-            RotateTowardsCamera(true); 
+
+            RotateTowardsCamera(true);
             isMagicAttacking = true;
             animator.SetTrigger("MagicAttack");
-            
+
         }
 
 
@@ -179,9 +199,15 @@ public class CharacterMovement : MonoBehaviour
         animator.SetBool("IsMovingBack", isMovingBack);
         animator.SetBool("IsJumping", isJumping);
         animator.SetBool("IsRunning", isRunning);
+
+        // Тест урона (убрать потом, это только для проверки)
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            TakeDamage(10f); // Наносим 10 единиц урона при нажатии 'T'
+        }
     }
 
-   
+
     private void RotateTowardsCamera(bool forceInstantRotation = false)
     {
         Vector3 cameraForward = cameraTransform.forward;
@@ -191,30 +217,30 @@ public class CharacterMovement : MonoBehaviour
 
         if (forceInstantRotation)
         {
-            
+
             transform.rotation = targetRotation;
         }
         else
         {
-           
+
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
         }
     }
 
-    
+
     public void SpawnFireball()
     {
         if (fireballPrefab != null)
         {
-            
+
             GameObject fireball = Instantiate(fireballPrefab, transform.position + fireballSpawnOffset, transform.rotation * Quaternion.Euler(-90f, 0f, 0f));
 
-            
+
             Rigidbody fireballRb = fireball.GetComponent<Rigidbody>();
             if (fireballRb != null)
             {
-                
-                fireballRb.AddForce(transform.forward * fireballForce, ForceMode.Impulse); 
+
+                fireballRb.AddForce(transform.forward * fireballForce, ForceMode.Impulse);
             }
 
         }
@@ -253,5 +279,48 @@ public class CharacterMovement : MonoBehaviour
             isJumping = true;
             animator.SetBool("IsJumping", true);
         }
+    }
+
+    // Метод для получения урона
+    public void TakeDamage(float damage)
+    {
+        if (isDead) return; // Если уже мертв, урон не принимаем
+
+        Health -= damage; // Используем свойство для изменения здоровья
+
+        CheckHealth();
+
+        Debug.Log("Персонаж получил урон: " + damage + ". Здоровье: " + Health); // Для отладки
+    }
+
+    private void CheckHealth()
+    {
+        if (Health <= 0)
+        {
+            Health = 0; // Убедимся, что здоровье не уходит в минус
+            Die();
+        }
+    }
+
+    // Метод смерти
+    void Die()
+    {
+        isDead = true;
+        animator.SetTrigger("Death"); // Запускаем анимацию смерти по триггеру "Death"
+        Debug.Log("Персонаж умер!");
+
+        // Отключаем скрипт движения, чтобы персонаж перестал двигаться
+        enabled = false;
+
+        // Можно добавить другие действия при смерти, например, отключение коллайдера,
+        // вызов события смерти, перезапуск уровня и т.д.
+    }
+
+    // Функция вызывается анимацией в конце анимации смерти (если нужно что-то сделать после анимации смерти)
+    public void OnDeathAnimationEnd()
+    {
+        // Например, можно здесь отключить игровой объект персонажа через Destroy(gameObject);
+        // или перезапустить уровень
+        Debug.Log("Анимация смерти завершена.");
     }
 }
