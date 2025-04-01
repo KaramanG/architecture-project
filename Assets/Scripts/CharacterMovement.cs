@@ -11,13 +11,17 @@ public class CharacterMovement : MonoBehaviour
     public float jumpForce = 7f;
     public float groundCheckDistance = 0.1f;
 
+    public float attackDamage = 20f; // ДTДВДАД~ ДАДД ДАДqДНДЙД~ДАДz ДpДДДpД{Дy (ДLДKДM)
+    public float attackRadius = 1.5f;
+    public float magicAttackDamage = 30f; // ДTДВДАД~ ДАДД Д}ДpДsДyДЙДuДГД{ДАДz ДpДДДpД{Дy (ДPДKДM)
+    public LayerMask mobLayer; // ДRД|ДАДz, Д~Дp Д{ДАДДДАДВДАД} Д~ДpДЗДАДtДСДДДГДС Д}ДАДqДН, Д~ДpДxД~ДpДЙДО Дr ДyД~ДГДБДuД{ДДДАДВДu
+
     public GameObject fireballPrefab;
     public float fireballForce = 20f;
     public Vector3 fireballSpawnOffset = Vector3.zero;
 
-    // —истема здоровь€
-    public float maxHealth = 100f; // ћаксимальное здоровье
-    public float health;           // “екущее здоровье, делаем public дл€ наблюдени€ в инспекторе, но лучше использовать свойство дл€ контрол€ доступа
+    public float maxHealth = 100f;
+    public float health;
 
     private Transform cameraTransform;
     private Animator animator;
@@ -27,15 +31,14 @@ public class CharacterMovement : MonoBehaviour
     private bool isRunning = false;
     private bool isAttacking = false;
     private bool isMagicAttacking = false;
-    private bool isDead = false; // ƒобавл€ем флаг смерти
+    private bool isDead = false;
 
     public bool isActuallyJumping = false;
 
-    // —войство дл€ доступа к здоровью извне, но с защитой от пр€мой записи (опционально, но хороша€ практика)
     public float Health
     {
         get { return health; }
-        private set { health = value; } // “еперь здоровье можно мен€ть только внутри этого класса
+        private set { health = value; }
     }
 
 
@@ -69,8 +72,7 @@ public class CharacterMovement : MonoBehaviour
             return;
         }
 
-        // »нициализаци€ здоровь€ при старте игры
-        Health = maxHealth; // »спользуем свойство дл€ установки начального значени€
+        Health = maxHealth;
     }
 
     void FixedUpdate()
@@ -82,7 +84,6 @@ public class CharacterMovement : MonoBehaviour
 
     void Update()
     {
-        // ≈сли персонаж мертв, не позвол€ем ему двигатьс€ или атаковать
         CheckHealth();
         if (isDead) return;
 
@@ -182,6 +183,7 @@ public class CharacterMovement : MonoBehaviour
             RotateTowardsCamera(true);
             isAttacking = true;
             animator.SetTrigger("Attack");
+            DealDamageToMob(attackDamage); // ДBДНДxДНДrДpДuД} Д}ДuДДДАДt Д~ДpД~ДuДГДuД~ДyДС ДЕДВДАД~Дp ДtД|ДС ДLДKДM
         }
 
 
@@ -200,10 +202,9 @@ public class CharacterMovement : MonoBehaviour
         animator.SetBool("IsJumping", isJumping);
         animator.SetBool("IsRunning", isRunning);
 
-        // “ест урона (убрать потом, это только дл€ проверки)
         if (Input.GetKeyDown(KeyCode.T))
         {
-            TakeDamage(10f); // Ќаносим 10 единиц урона при нажатии 'T'
+            TakeDamage(10f);
         }
     }
 
@@ -281,46 +282,50 @@ public class CharacterMovement : MonoBehaviour
         }
     }
 
-    // ћетод дл€ получени€ урона
     public void TakeDamage(float damage)
     {
-        if (isDead) return; // ≈сли уже мертв, урон не принимаем
+        if (isDead) return;
 
-        Health -= damage; // »спользуем свойство дл€ изменени€ здоровь€
+        Health -= damage;
 
         CheckHealth();
-
-        Debug.Log("ѕерсонаж получил урон: " + damage + ". «доровье: " + Health); // ƒл€ отладки
     }
 
     private void CheckHealth()
     {
         if (Health <= 0)
         {
-            Health = 0; // ”бедимс€, что здоровье не уходит в минус
+            Health = 0;
             Die();
         }
     }
 
-    // ћетод смерти
     void Die()
     {
         isDead = true;
-        animator.SetTrigger("Death"); // «апускаем анимацию смерти по триггеру "Death"
-        Debug.Log("ѕерсонаж умер!");
+        animator.SetTrigger("Death");
 
-        // ќтключаем скрипт движени€, чтобы персонаж перестал двигатьс€
         enabled = false;
-
-        // ћожно добавить другие действи€ при смерти, например, отключение коллайдера,
-        // вызов событи€ смерти, перезапуск уровн€ и т.д.
     }
 
-    // ‘ункци€ вызываетс€ анимацией в конце анимации смерти (если нужно что-то сделать после анимации смерти)
     public void OnDeathAnimationEnd()
     {
-        // Ќапример, можно здесь отключить игровой объект персонажа через Destroy(gameObject);
-        // или перезапустить уровень
-        Debug.Log("јнимаци€ смерти завершена.");
+
+    }
+
+    private void DealDamageToMob(float damageAmount)
+    {
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition); // ДLДЕДЙ ДyДx Д{ДpД}ДuДВДН, Д~ДpДБДВДpДrД|ДuД~Д~ДНДz ДДДЕДtДp, Д{ДЕДtДp ДГД}ДАДДДВДyДД Д}ДНДКДО
+
+        if (Physics.SphereCast(ray, attackRadius, out hit, 100f, mobLayer))
+        {
+            HealthBar mobHealthBar = hit.collider.GetComponent<HealthBar>();
+            if (mobHealthBar != null)
+            {
+                mobHealthBar.TakeDamage(damageAmount);
+                Debug.Log("ДPДАДБДpД|Дy ДБДА Д}ДАДqДЕ! ДNДpД~ДuДГДuД~ ДЕДВДАД~: " + damageAmount);
+            }
+        }
     }
 }
