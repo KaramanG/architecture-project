@@ -3,35 +3,38 @@ using UnityEngine.AI;
 
 public class MobAI : MonoBehaviour
 {
-    public float speed = 3.5f;
-    public float stoppingDistance = 1.5f;
+    [SerializeField] private float mobSpeed;
+    [SerializeField] private float mobStoppingDistance;
 
-    private NavMeshAgent agent;
-    private Transform playerTransform;
+    private NavMeshAgent navMeshAgent;
+    private GameObject player;
 
     void Start()
     {
-        agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
-        {
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        if (navMeshAgent == null ) {
+            Debug.Log(gameObject.name + " „q„u„x navmeshagent");
             return;
         }
 
-        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
-        if (playerTransform == null)
-        {
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null) {
+            Debug.Log(gameObject.name + " „~„u „ƒ„}„€„s „~„p„z„„„y „y„s„‚„€„{„p");
             return;
         }
 
-        agent.speed = speed;
-        agent.stoppingDistance = stoppingDistance;
+        navMeshAgent.speed = mobSpeed;
+        navMeshAgent.stoppingDistance = mobStoppingDistance;
     }
 
     void Update()
     {
-        if (playerTransform != null && agent != null)
-        {
-            agent.SetDestination(playerTransform.position);
-        }
+        SetPlayerDestination();
+    }
+
+    private void SetPlayerDestination()
+    {
+        if (navMeshAgent == null || player == null) { return; }
+        navMeshAgent.SetDestination(player.transform.position);
     }
 }

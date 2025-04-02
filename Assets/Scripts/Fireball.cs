@@ -17,12 +17,11 @@ public class Fireball : MonoBehaviour
     {
         if ((mobLayer.value & (1 << other.gameObject.layer)) != 0) // „P„‚„€„r„u„‚„‘„u„}, „‰„„„€ „ƒ„„„€„|„{„~„…„|„y„ƒ„ „ƒ „€„q„Œ„u„{„„„€„} „~„p „ƒ„|„€„u mobLayer
         {
-            HealthBar mobHealthBar = other.GetComponent<HealthBar>();
-            if (mobHealthBar != null)
+            HealthSystem mobHealth = other.GetComponent<HealthSystem>();
+            if (mobHealth != null)
             {
-                mobHealthBar.TakeDamage(damageAmount); // „N„p„~„€„ƒ„y„} „…„‚„€„~ „}„€„q„…
-                Debug.Log("„U„p„z„u„‚„q„€„| „„€„„p„| „r „}„€„q„p! „N„p„~„u„ƒ„u„~ „…„‚„€„~: " + damageAmount);
-                Destroy(gameObject); // „T„~„y„‰„„„€„w„p„u„} „†„p„z„u„‚„q„€„| „„€„ƒ„|„u „„€„„p„t„p„~„y„‘
+                mobHealth.TakeDamage(damageAmount);
+                Destroy(gameObject);
             }
         }
     }

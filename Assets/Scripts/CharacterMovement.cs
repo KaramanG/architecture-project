@@ -316,16 +316,15 @@ public class CharacterMovement : MonoBehaviour
     private void DealDamageToMob(float damageAmount)
     {
         RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition); // „L„…„‰ „y„x „{„p„}„u„‚„, „~„p„„‚„p„r„|„u„~„~„„z „„„…„t„p, „{„…„t„p „ƒ„}„€„„„‚„y„„ „}„„Š„
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
         if (Physics.SphereCast(ray, attackRadius, out hit, 100f, mobLayer))
         {
-            HealthBar mobHealthBar = hit.collider.GetComponent<HealthBar>();
-            if (mobHealthBar != null)
+            HealthSystem mobHealth = hit.collider.GetComponent<HealthSystem>();
+            if (mobHealth != null)
             {
-                mobHealthBar.TakeDamage(damageAmount);
-                Debug.Log("„P„€„„p„|„y „„€ „}„€„q„…! „N„p„~„u„ƒ„u„~ „…„‚„€„~: " + damageAmount);
-            }
+                mobHealth.TakeDamage(damageAmount);
+            }   
         }
     }
 }
