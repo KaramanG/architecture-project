@@ -25,9 +25,6 @@ public class HealthSystem : MonoBehaviour
     
     [SerializeField] private HealthBar healthBar;
 
-    [Header("Animator")]
-    [SerializeField] private string deathTriggerName = "Death";
-
     private bool isDead;
     private Animator animator;
 
@@ -47,18 +44,21 @@ public class HealthSystem : MonoBehaviour
 
     public float GetHealth() { return health; }
     public float GetMaxHealth() { return maxHealth; }
+    public bool IsDead() { return isDead; }
 
     public void TakeDamage(float damage)
     {
         if (isDead) return;
 
         health -= damage;
-        healthBar.UpdateHealthBar();
+
+        if (healthBar != null) {
+            healthBar.UpdateHealthBar();
+        }
     }
 
     private void InstanceDie()
     {
         isDead = true;
-        animator.SetTrigger(deathTriggerName);
     }
 }

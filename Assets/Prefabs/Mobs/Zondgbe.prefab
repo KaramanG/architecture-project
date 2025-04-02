@@ -1392,6 +1392,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mobSpeed: 1
   mobStoppingDistance: 1.5
+  mobAgroRadius: 10
+  isWalkingBoolName: IsWalking
+  attackTriggerName: Attack
+  deathTriggerName: Death
 --- !u!114 &6560830117362044069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1407,7 +1411,6 @@ MonoBehaviour:
   maxHealth: 100
   _health: 0
   healthBar: {fileID: 5839405726903506018}
-  deathTriggerName: Death
 --- !u!1 &5421612508689439441
 GameObject:
   m_ObjectHideFlags: 0

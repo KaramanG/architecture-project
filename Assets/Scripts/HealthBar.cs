@@ -26,6 +26,5 @@ public class HealthBar : MonoBehaviour
     public void UpdateHealthBar()
     {
         healthBarFill.fillAmount = healthSystem.GetHealth() / healthSystem.GetMaxHealth();
-        Debug.Log(healthBarFill.fillAmount);
     }
 }

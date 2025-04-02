@@ -274,6 +274,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mobSpeed: 1
   mobStoppingDistance: 2
+  mobAgroRadius: 8
 --- !u!114 &1765205617319099271
 MonoBehaviour:
   m_ObjectHideFlags: 0

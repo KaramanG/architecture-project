@@ -183,7 +183,6 @@ public class CharacterMovement : MonoBehaviour
             RotateTowardsCamera(true);
             isAttacking = true;
             animator.SetTrigger("Attack");
-            DealDamageToMob(attackDamage); // „B„„x„„r„p„u„} „}„u„„„€„t „~„p„~„u„ƒ„u„~„y„‘ „…„‚„€„~„p „t„|„‘ „L„K„M
         }
 
 
@@ -313,7 +312,7 @@ public class CharacterMovement : MonoBehaviour
 
     }
 
-    private void DealDamageToMob(float damageAmount)
+    public void DealDamageToMob()
     {
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -323,7 +322,7 @@ public class CharacterMovement : MonoBehaviour
             HealthSystem mobHealth = hit.collider.GetComponent<HealthSystem>();
             if (mobHealth != null)
             {
-                mobHealth.TakeDamage(damageAmount);
+                mobHealth.TakeDamage(attackDamage);
             }   
         }
     }
