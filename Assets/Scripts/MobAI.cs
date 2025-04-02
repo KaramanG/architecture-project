@@ -1,43 +1,77 @@
 using UnityEngine;
-using UnityEngine.AI; // ќб€зательно подключаем пространство имен дл€ NavMeshAgent
+using UnityEngine.AI;
 
 public class MobAI : MonoBehaviour
 {
-    public float speed = 3.5f;       // —корость моба, настраиваетс€ в инспекторе
-    public float stoppingDistance = 1.5f; // ƒистанци€ остановки перед персонажем
+    [SerializeField] private float mobSpeed;
+    [SerializeField] private float mobStoppingDistance;
+    [SerializeField] private float mobAgroRadius;
 
-    private NavMeshAgent agent;
-    private Transform playerTransform;
+    private HealthSystem mobHealth;
+    private NavMeshAgent navMeshAgent;
+    private Rigidbody mobRigidbody;
 
-    void Start()
+    [Header("Animator")]
+    [SerializeField] private string isWalkingBoolName = "IsWalking";
+    [SerializeField] private string attackTriggerName = "Attack";
+    [SerializeField] private string deathTriggerName = "Death";
+
+    private Animator mobAnimator;
+
+    private GameObject player;
+
+    private void Awake()
     {
-        // ѕолучаем компонент NavMeshAgent, который должен быть на этом же объекте
-        agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        mobHealth = GetComponent<HealthSystem>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        mobRigidbody = GetComponent<Rigidbody>();
+        mobAnimator = GetComponent<Animator>();
+
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
         {
-            Debug.LogError("NavMeshAgent компонент не найден на объекте " + gameObject.name);
-            return; // ѕрерываем выполнение, если нет NavMeshAgent
+            Debug.Log(gameObject.name + " Д~Дu ДГД}ДАДs Д~ДpДzДДДy ДyДsДВДАД{Дp");
+            return;
         }
 
-        // »щем персонажа по тегу "Player". ”бедись, что у твоего персонажа есть тег "Player"
-        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
-        if (playerTransform == null)
-        {
-            Debug.LogError("ѕерсонаж с тегом 'Player' не найден на сцене. ”бедитесь, что ваш персонаж имеет тег 'Player'.");
-            return; // ѕрерываем выполнение, если игрок не найден
-        }
-
-        // Ќастраиваем NavMeshAgent
-        agent.speed = speed;
-        agent.stoppingDistance = stoppingDistance;
+        navMeshAgent.speed = mobSpeed;
+        navMeshAgent.stoppingDistance = mobStoppingDistance;
     }
 
     void Update()
     {
-        // ≈сли персонаж найден и NavMeshAgent существует, указываем ему цель - позицию персонажа
-        if (playerTransform != null && agent != null)
+        if (mobHealth.IsDead())
         {
-            agent.SetDestination(playerTransform.position); // «адаем точку назначени€ - позицию персонажа
+            OnMobDeath();
+            return;
         }
+
+        if (Vector3.Distance(transform.position, player.transform.position) < mobAgroRadius)
+        {
+            SetPlayerDestination();
+        }
+        else
+        {
+            mobAnimator.SetBool(isWalkingBoolName, false);
+        }
+    }
+
+    private void SetPlayerDestination()
+    {
+        if (navMeshAgent == null || player == null) { return; }
+
+        navMeshAgent.SetDestination(player.transform.position);
+        mobAnimator.SetBool(isWalkingBoolName, true);
+    }
+
+    private void OnMobDeath()
+    {
+        mobRigidbody.constraints = RigidbodyConstraints.FreezeAll;
+        mobAnimator.SetTrigger(deathTriggerName);
+    }
+
+    public void DespawnMob()
+    {
+        Destroy(gameObject);
     }
 }
