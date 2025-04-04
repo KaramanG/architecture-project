@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class HealthSystem : MonoBehaviour
 {
@@ -14,15 +15,23 @@ public class HealthSystem : MonoBehaviour
             return _health;
         }
         set {
-            if (value <= 0) {
-                _health = 0;
+            float clampedValue = Mathf.Clamp(value, 0f, maxHealth);
+
+            if (Mathf.Approximately(_health, clampedValue)) return;
+
+            _health = clampedValue;
+            OnHealthChanged?.Invoke(_health, maxHealth);
+
+            if (_health <= 0 && !isDead)
+            {
                 InstanceDie();
-                return;
             }
-            _health = value;
         }
     }
-    
+
+    public UnityEvent OnPlayerDied;
+    public UnityEvent<float, float> OnHealthChanged;
+
     [SerializeField] private HealthBar healthBar;
 
     private bool isDead;
@@ -33,11 +42,11 @@ public class HealthSystem : MonoBehaviour
         health = maxHealth;
         isDead = false;
 
+        OnHealthChanged?.Invoke(_health, maxHealth);
         healthBar.UpdateHealthBar();
 
         animator = GetComponent<Animator>();
         if (animator == null) {
-            Debug.Log(gameObject.name + " ДqДuДx ДpД~ДyД}ДpДДДАДВДp");
             return;
         }
     }
@@ -59,6 +68,11 @@ public class HealthSystem : MonoBehaviour
 
     private void InstanceDie()
     {
+        if (isDead) return; // ”бедимс€, что вызываем один раз
+
         isDead = true;
+        animator.SetTrigger("Die");
+
+        OnPlayerDied?.Invoke();
     }
 }
