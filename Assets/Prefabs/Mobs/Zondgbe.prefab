@@ -158,6 +158,76 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1465067435845031236}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &783944002110624051
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7121602061864750618}
+  - component: {fileID: 4410076172138391586}
+  - component: {fileID: 424793592824001977}
+  m_Layer: 6
+  m_Name: AttackHitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7121602061864750618
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 783944002110624051}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: 1.227, z: 1.58}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1484080215057170875}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4410076172138391586
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 783944002110624051}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1.3947786, z: 1.5662433}
+  m_Center: {x: -0.0000000018421131, y: 0.19738734, z: -0.33538908}
+--- !u!114 &424793592824001977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 783944002110624051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f672df326820d9b42be2122ea7fa91f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sourceAttack: {fileID: 6594243068682531168}
+  targetLayers:
+  - serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &866164067981521709
 GameObject:
   m_ObjectHideFlags: 0
@@ -1259,6 +1329,7 @@ GameObject:
   - component: {fileID: 1664448196225805762}
   - component: {fileID: 9205014676721525218}
   - component: {fileID: 6560830117362044069}
+  - component: {fileID: 6594243068682531168}
   m_Layer: 6
   m_Name: Zondgbe
   m_TagString: Untagged
@@ -1283,6 +1354,7 @@ Transform:
   - {fileID: 7560880182757592935}
   - {fileID: 8581311232936601404}
   - {fileID: 9029157796521054533}
+  - {fileID: 7121602061864750618}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 185.452, z: 0}
 --- !u!95 &5669788317254542981
@@ -1391,8 +1463,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mobSpeed: 1
-  mobStoppingDistance: 1.5
+  mobStoppingDistance: 0.5
   mobAgroRadius: 10
+  mobAttackRate: 10
   isWalkingBoolName: IsWalking
   attackTriggerName: Attack
   deathTriggerName: Death
@@ -1411,6 +1484,20 @@ MonoBehaviour:
   maxHealth: 100
   _health: 0
   healthBar: {fileID: 5839405726903506018}
+--- !u!114 &6594243068682531168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5379016535664218199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cee26bc9521bdd844a4ac0ac22f334ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  physicalDamage: 10
+  magicDamage: 0
 --- !u!1 &5421612508689439441
 GameObject:
   m_ObjectHideFlags: 0
