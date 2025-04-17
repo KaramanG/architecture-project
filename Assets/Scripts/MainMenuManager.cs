@@ -25,7 +25,7 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private AudioSource buttonClickSound;
 
     private bool isPaused = false;
-    private bool isInMainMenu = true;
+    private bool isInMainMenu;
 
     private void Start()
     {
@@ -33,11 +33,19 @@ public class MainMenuManager : MonoBehaviour
         InitializeSettings();
         InitializePauseMenu();
         SetInitialUIState();
+
+        if (SceneManager.GetActiveScene().name == "MainMenu")
+        {
+            isInMainMenu = true;
+        }
+        else
+        {
+            isInMainMenu = false;
+        }
     }
 
     private void Update()
     {
-        // ѕровер€ем Esc только если не в главном меню
         if (!isInMainMenu && Input.GetKeyDown(KeyCode.Escape))
         {
             TogglePauseMenu();
@@ -115,7 +123,7 @@ public class MainMenuManager : MonoBehaviour
     {
         isInMainMenu = false;
         Time.timeScale = 1f;
-        SceneManager.LoadScene(1); // «агружаем первую игровую сцену
+        SceneManager.LoadScene(1); // «агружаем БEрвБE игровую сценБE
     }
 
     public void OpenSettings()
@@ -124,17 +132,22 @@ public class MainMenuManager : MonoBehaviour
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(true);
-            // √арантируем, что кнопка Back активна
+            // √арантируем, чтБEБEъ@БE Back активнБE
             if (backButton != null) backButton.gameObject.SetActive(true);
         }
     }
 
-    public void ReturnToMainMenu()
+    public void ReturnToMainMenu() //ДС Д~Дu ДuДqДЕ ДЙДu ДАД~Дp ДtДuД|ДpДuДД ДДДpД{ ДЙДДДА ДАДГДДДpДrД|ДР Д{ДpД{ ДuДГДДДО ДБДВДАДГДДДА Д~ДАДrДЕДР ДЖДЕД~Д{ДИДyДР ДГДАДxДtДpД}
     {
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (settingsPanel != null) settingsPanel.SetActive(false);
-        // √арантируем, что кнопка Back активна дл€ следующего открыти€
+        // √арантируем, чтБEБEъ@БE Back активнБEдл€ следБEщего ъCБEытБE
         if (backButton != null) backButton.gameObject.SetActive(true);
+    }
+
+    public void GoBackToMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
     }
     #endregion
 
@@ -146,7 +159,7 @@ public class MainMenuManager : MonoBehaviour
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.SetActive(isPaused);
-            // √арантируем, что все кнопки активны
+            // √арантируем, чтБEвсБEБEъ@БE активнБE
             if (resumeButton != null) resumeButton.gameObject.SetActive(true);
             if (saveButton != null) saveButton.gameObject.SetActive(true);
             if (exitToMenuButton != null) exitToMenuButton.gameObject.SetActive(true);
@@ -165,7 +178,7 @@ public class MainMenuManager : MonoBehaviour
     {
         PlayerPrefs.SetInt("SavedLevel", 1);
         PlayerPrefs.Save();
-        Debug.Log("»гра сохранена!");
+        Debug.Log("»грБEсохраненБE");
     }
 
     public void ExitToMainMenu()
@@ -173,7 +186,7 @@ public class MainMenuManager : MonoBehaviour
         isInMainMenu = true;
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        SceneManager.LoadScene(0); // «агружаем главное меню
+        SceneManager.LoadScene(0); // «агружаем главыMБEБEБE
     }
     #endregion
 
