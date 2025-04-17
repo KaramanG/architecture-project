@@ -169,7 +169,7 @@ GameObject:
   - component: {fileID: 7121602061864750618}
   - component: {fileID: 4410076172138391586}
   - component: {fileID: 424793592824001977}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: AttackHitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1483,6 +1483,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   _health: 0
+  OnPlayerDied:
+    m_PersistentCalls:
+      m_Calls: []
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
   healthBar: {fileID: 5839405726903506018}
 --- !u!114 &6594243068682531168
 MonoBehaviour:

@@ -68,10 +68,10 @@ public class HealthSystem : MonoBehaviour
 
     private void InstanceDie()
     {
-        if (isDead) return; // Убедимся, что вызываем один раз
+        if (isDead) return;
 
         isDead = true;
-        animator.SetTrigger("Die");
+        animator.SetTrigger("Death");
 
         OnPlayerDied?.Invoke();
     }

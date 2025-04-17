@@ -58,7 +58,7 @@ public class CameraOrbit : MonoBehaviour
             Vector3 position = rotation * negDistance + targetPosition;
 
             
-            if (characterMovement.isActuallyJumping)
+            if (characterMovement.GetJumpState())
             {
                 position.y = fixedYPosition; 
             }

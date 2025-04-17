@@ -64960,14 +64960,14 @@ AnimationClip:
   m_HasMotionFloatCurves: 0
   m_Events:
   - time: 0.76666665
-    functionName: DealDamageToMob
+    functionName: OnPhysicalAttackStart
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
   - time: 2
-    functionName: OnAttackAnimationEnd
+    functionName: OnPhysicalAttackEnd
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0

@@ -39,7 +39,6 @@ public class MobAI : MonoBehaviour
         player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
         {
-            Debug.Log(gameObject.name + " „~„u „ƒ„}„€„s „~„p„z„„„y „y„s„‚„€„{„p");
             return;
         }
 
@@ -124,8 +123,6 @@ public class MobAI : MonoBehaviour
     {
         navMeshAgent.isStopped = true;
         mobRigidbody.constraints = RigidbodyConstraints.FreezeAll;
-        mobAnimator.SetTrigger(deathTriggerName);
-
         this.enabled = false;
     }
 

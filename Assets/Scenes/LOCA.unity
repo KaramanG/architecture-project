@@ -1414,7 +1414,7 @@ GameObject:
   - component: {fileID: 389484584}
   - component: {fileID: 389484586}
   - component: {fileID: 389484585}
-  m_Layer: 7
+  m_Layer: 0
   m_Name: AttackHitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4302,18 +4302,9 @@ MonoBehaviour:
   smoothRotationSpeed: 150
   jumpForce: 2
   groundCheckDistance: 0.1
-  attackDamage: 20
-  attackRadius: 1.5
-  magicAttackDamage: 30
-  mobLayer:
-    serializedVersion: 2
-    m_Bits: 64
   fireballPrefab: {fileID: 2826741919589672186, guid: f197c74610f8c20479fe1f125a00f097, type: 3}
   fireballForce: 3
   fireballSpawnOffset: {x: 0, y: 0.6, z: 0}
-  maxHealth: 100
-  health: 100
-  isActuallyJumping: 0
 --- !u!95 &1253181963
 Animator:
   serializedVersion: 5

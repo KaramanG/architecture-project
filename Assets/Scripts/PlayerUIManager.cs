@@ -66,13 +66,11 @@ public class PlayerUIManager : MonoBehaviour
         if (gameOverScreenPanel != null)
         {
             gameOverScreenPanel.SetActive(true);
-            Time.timeScale = 0f;
         }
     }
 
     public void RestartGame()
     {
-        Time.timeScale = 1f;
         Scene currentScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(currentScene.buildIndex);
     }

@@ -273,7 +273,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mobSpeed: 1
-  mobStoppingDistance: 2
+  mobStoppingDistance: 4
   mobAgroRadius: 8
   mobAttackRate: 30
   isWalkingBoolName: IsWalking
