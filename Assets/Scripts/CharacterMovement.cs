@@ -5,23 +5,18 @@ using UnityEngine.EventSystems;
 
 public class CharacterMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float runSpeed = 10f;
-    public float rotationSpeed = 100f;
-    public float smoothRotationSpeed = 10f;
-    public float jumpForce = 7f;
-    public float groundCheckDistance = 0.1f;
-
-    public GameObject fireballPrefab;
-    public float fireballForce = 20f;
-    public Vector3 fireballSpawnOffset = Vector3.zero;
+    [SerializeField] private float moveSpeed;
+    [SerializeField] private float runSpeed;
+    [SerializeField] private float rotationSpeed;
+    [SerializeField] private float smoothRotationSpeed;
+    [SerializeField] private float jumpForce;
+    [SerializeField] private float groundCheckDistance;
 
     private Transform cameraTransform;
 
     private Animator animator;
     private Rigidbody rb;
     private HealthSystem playerHealth;
-    private AttackSystem playerAttack;
 
     private bool isMoving;
     private bool isRunning;
@@ -42,7 +37,6 @@ public class CharacterMovement : MonoBehaviour
     };
 
     private bool isAttacking;
-    private HitboxScript playerAttackHitbox;
     private bool isMagicAttacking;
 
     private string animatorMoveBool = "IsMoving";
@@ -50,7 +44,6 @@ public class CharacterMovement : MonoBehaviour
     private string animatorJumpBool = "IsJumping";
     private string animatorPhysicalAttackTrigger = "PhysicalAttack";
     private string animatorMagicalAttackTrigger = "MagicalAttack";
-    private string animatorDeathTrigger = "Death";
 
 
     void Awake()
@@ -65,7 +58,6 @@ public class CharacterMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         playerHealth = GetComponent<HealthSystem>();
-        playerAttack = GetComponent<AttackSystem>();
 
         isMoving = false;
         isRunning = false;
@@ -74,7 +66,6 @@ public class CharacterMovement : MonoBehaviour
         CheckForGround();
 
         isAttacking = false;
-        playerAttackHitbox = GetComponentInChildren<HitboxScript>();
         isMagicAttacking = false;
 
         UpdateCameraAxis();
@@ -234,43 +225,16 @@ public class CharacterMovement : MonoBehaviour
     {
         return !isAttacking && !isMagicAttacking && isGrounded;
     }
-    public void OnPhysicalAttackStart()
+    public void OnPlayerAttackEnd()
     {
-        playerAttackHitbox.EnableHitbox();
-    }
-    public void OnPhysicalAttackEnd()
-    {
-        playerAttackHitbox.DisableHitbox();
         isAttacking = false;
     }
-    public void OnMagicalAttackStart()
-    {
-        
-    }
-    public void OnMagicalAttackEnd()
+    public void OnPlayerMagicAttackEnd()
     {
         isMagicAttacking = false;
     }
-    /*
-    public void SpawnFireball()
-    {
-        if (fireballPrefab != null)
-        {
 
-            GameObject fireball = Instantiate(fireballPrefab, transform.position + fireballSpawnOffset, transform.rotation * Quaternion.Euler(-90f, 0f, 0f));
-
-
-            Rigidbody fireballRb = fireball.GetComponent<Rigidbody>();
-            if (fireballRb != null)
-            {
-
-                fireballRb.AddForce(transform.forward * fireballForce, ForceMode.Impulse);
-            }
-
-        }
-
-    }*/
-
+    //Death Logic
     private void OnPlayerDeath()
     {
         enabled = false;

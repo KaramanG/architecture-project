@@ -9,9 +9,7 @@ public class MobAI : MonoBehaviour
     [SerializeField] private float mobAttackRate;
 
     private HealthSystem mobHealth;
-    private AttackSystem mobAttack;
     private float lastAttackTime;
-    private HitboxScript mobAttackHitbox;
 
     private Rigidbody mobRigidbody;
     private NavMeshAgent navMeshAgent;
@@ -28,8 +26,6 @@ public class MobAI : MonoBehaviour
     private void Awake()
     {
         mobHealth = GetComponent<HealthSystem>();
-        mobAttack = GetComponent<AttackSystem>();
-        mobAttackHitbox = GetComponentInChildren<HitboxScript>();
 
         mobRigidbody = GetComponent<Rigidbody>();
         navMeshAgent = GetComponent<NavMeshAgent>();
@@ -107,16 +103,6 @@ public class MobAI : MonoBehaviour
     private void AttackPlayer()
     {
         mobAnimator.SetTrigger(attackTriggerName);
-    }
-
-    public void EnableAttackHitbox()
-    {
-        mobAttackHitbox.EnableHitbox();
-    }
-
-    public void DisableAttackHitbox()
-    {
-        mobAttackHitbox.DisableHitbox();
     }
 
     private void OnMobDeath()

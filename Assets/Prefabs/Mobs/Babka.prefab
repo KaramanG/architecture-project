@@ -141,6 +141,7 @@ GameObject:
   - component: {fileID: 6700440167824742897}
   - component: {fileID: 9052230232904060354}
   - component: {fileID: 1765205617319099271}
+  - component: {fileID: 2251832472633539463}
   m_Layer: 6
   m_Name: Babka
   m_TagString: Untagged
@@ -275,7 +276,7 @@ MonoBehaviour:
   mobSpeed: 1
   mobStoppingDistance: 4
   mobAgroRadius: 8
-  mobAttackRate: 30
+  mobAttackRate: 0.5
   isWalkingBoolName: IsWalking
   attackTriggerName: Attack
   deathTriggerName: Death
@@ -300,6 +301,26 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   healthBar: {fileID: 5118334034330174983}
+--- !u!114 &2251832472633539463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 423552295489228067}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa194e3a84f54954d81deb8e3c240413, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 25
+  fireballPrefab: {fileID: 2826741919589672186, guid: f197c74610f8c20479fe1f125a00f097, type: 3}
+  fireballSpeed: 3
+  fireballSpawnOffset: {x: 0, y: 0.6, z: 0}
+  fireballLifetime: 3
+  targetLayers:
+  - serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &534764449766222252
 GameObject:
   m_ObjectHideFlags: 0

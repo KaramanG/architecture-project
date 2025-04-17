@@ -224,7 +224,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f672df326820d9b42be2122ea7fa91f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sourceAttack: {fileID: 6594243068682531168}
+  sourceAttack: {fileID: 1057353347764250357}
   targetLayers:
   - serializedVersion: 2
     m_Bits: 128
@@ -1329,7 +1329,7 @@ GameObject:
   - component: {fileID: 1664448196225805762}
   - component: {fileID: 9205014676721525218}
   - component: {fileID: 6560830117362044069}
-  - component: {fileID: 6594243068682531168}
+  - component: {fileID: 1057353347764250357}
   m_Layer: 6
   m_Name: Zondgbe
   m_TagString: Untagged
@@ -1490,7 +1490,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   healthBar: {fileID: 5839405726903506018}
---- !u!114 &6594243068682531168
+--- !u!114 &1057353347764250357
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1499,11 +1499,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 5379016535664218199}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cee26bc9521bdd844a4ac0ac22f334ff, type: 3}
+  m_Script: {fileID: 11500000, guid: ae268fc0628b34341ab7dfa3f7915245, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  physicalDamage: 10
-  magicDamage: 0
+  damage: 10
 --- !u!1 &5421612508689439441
 GameObject:
   m_ObjectHideFlags: 0

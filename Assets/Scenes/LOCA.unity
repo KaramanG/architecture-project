@@ -1448,7 +1448,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f672df326820d9b42be2122ea7fa91f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sourceAttack: {fileID: 1253181967}
+  sourceAttack: {fileID: 0}
   targetLayers:
   - serializedVersion: 2
     m_Bits: 64
@@ -4253,7 +4253,8 @@ GameObject:
   - component: {fileID: 1253181964}
   - component: {fileID: 1253181962}
   - component: {fileID: 1253181966}
-  - component: {fileID: 1253181967}
+  - component: {fileID: 1253181968}
+  - component: {fileID: 1253181969}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -4302,9 +4303,6 @@ MonoBehaviour:
   smoothRotationSpeed: 150
   jumpForce: 2
   groundCheckDistance: 0.1
-  fireballPrefab: {fileID: 2826741919589672186, guid: f197c74610f8c20479fe1f125a00f097, type: 3}
-  fireballForce: 3
-  fireballSpawnOffset: {x: 0, y: 0.6, z: 0}
 --- !u!95 &1253181963
 Animator:
   serializedVersion: 5
@@ -4397,7 +4395,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   healthBar: {fileID: 8660676}
---- !u!114 &1253181967
+--- !u!114 &1253181968
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4406,11 +4404,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 1253181958}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cee26bc9521bdd844a4ac0ac22f334ff, type: 3}
+  m_Script: {fileID: 11500000, guid: ae268fc0628b34341ab7dfa3f7915245, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  physicalDamage: 35
-  magicDamage: 60
+  damage: 35
+--- !u!114 &1253181969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1253181958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa194e3a84f54954d81deb8e3c240413, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 40
+  fireballPrefab: {fileID: 2826741919589672186, guid: f197c74610f8c20479fe1f125a00f097, type: 3}
+  fireballSpeed: 3
+  fireballSpawnOffset: {x: 0, y: 0.6, z: 0}
+  fireballLifetime: 5
+  targetLayers:
+  - serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &1256303381
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class HitboxScript : MonoBehaviour
 {
-    [SerializeField] private AttackSystem sourceAttack;
+    [SerializeField] private PhysicalAttackSystem sourceAttack;
     [SerializeField] private List<LayerMask> targetLayers;
 
     private Collider hitboxCollider;
@@ -39,7 +39,7 @@ public class HitboxScript : MonoBehaviour
         if (hitList.Contains(other)) { return; }
 
         HealthSystem targetHealth = other.GetComponent<HealthSystem>();
-        targetHealth.TakeDamage(sourceAttack.GetPhysicalDamage());
+        targetHealth.TakeDamage(sourceAttack.GetDamage());
 
         hitList.Add(other);
     }
