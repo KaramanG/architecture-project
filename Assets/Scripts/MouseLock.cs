@@ -4,19 +4,22 @@ using UnityEngine;
 
 public class MouseLock : MonoBehaviour
 {
+    public bool ShowCursorLock;
     private void Start()
     {
+        ShowCursorLock = false;
         HideCursor();
     }
     private void Update()
     {
-        if (Input.GetKey(KeyCode.Tab))
-        {
-            ShowCursor();
-            return;
-        }
-        HideCursor();
+        if (IsCursorVisible()) ShowCursor();
+        else HideCursor();
     }
+
+    public bool IsCursorVisible()
+    {
+        return Input.GetKey(KeyCode.Tab) || ShowCursorLock;
+}
 
     private void ShowCursor()
     {

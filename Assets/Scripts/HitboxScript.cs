@@ -40,6 +40,8 @@ public class HitboxScript : MonoBehaviour
 
         HealthSystem targetHealth = other.GetComponent<HealthSystem>();
         targetHealth.TakeDamage(sourceAttack.GetDamage());
+        Animator targetAnimator = other.GetComponent<Animator>();
+        targetAnimator.SetTrigger("Stun");
 
         hitList.Add(other);
     }

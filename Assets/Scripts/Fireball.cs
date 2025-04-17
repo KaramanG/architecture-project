@@ -26,6 +26,8 @@ public class Fireball : MonoBehaviour
 
         HealthSystem targetHealth = other.GetComponent<HealthSystem>();
         targetHealth.TakeDamage(damage);
+        Animator targetAnimator = other.GetComponent<Animator>();
+        targetAnimator.SetTrigger("Stun");
         Destroy(gameObject);
     }
 

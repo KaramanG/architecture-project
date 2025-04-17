@@ -17,6 +17,7 @@ public class CharacterMovement : MonoBehaviour
     private Animator animator;
     private Rigidbody rb;
     private HealthSystem playerHealth;
+    private ManaSystem playerMana;
 
     private bool isMoving;
     private bool isRunning;
@@ -39,6 +40,8 @@ public class CharacterMovement : MonoBehaviour
     private bool isAttacking;
     private bool isMagicAttacking;
 
+    private float magicManaCost = 30f;
+
     private string animatorMoveBool = "IsMoving";
     private string animatorRunBool = "IsRunning";
     private string animatorJumpBool = "IsJumping";
@@ -58,6 +61,7 @@ public class CharacterMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         playerHealth = GetComponent<HealthSystem>();
+        playerMana = GetComponent<ManaSystem>();
 
         isMoving = false;
         isRunning = false;
@@ -148,10 +152,11 @@ public class CharacterMovement : MonoBehaviour
             animator.SetTrigger(animatorPhysicalAttackTrigger);
         }
 
-        if (Input.GetMouseButtonDown(1) && CanAttack())
+        if (Input.GetMouseButtonDown(1) && CanAttack() && playerMana.GetMana() > magicManaCost)
         {
             RotateTowardsCamera(true);
             isMagicAttacking = true;
+            playerMana.ReduceMana(magicManaCost);
             animator.SetTrigger(animatorMagicalAttackTrigger);
         }
     }

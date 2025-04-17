@@ -4,15 +4,16 @@ using UnityEngine;
 
 public class CameraOrbit : MonoBehaviour
 {
-    public Transform target;         
-    public float distance = 5.0f;    
-    public float xSpeed = 120.0f;    
-    public float ySpeed = 120.0f;    
+    [SerializeField] private Transform target;
+    [SerializeField] private float distance = 5.0f;
+    [SerializeField] private float xSpeed = 120.0f;
+    [SerializeField] private float ySpeed = 120.0f;
 
-    public float yMinLimit = -20f;   
-    public float yMaxLimit = 80f;    
+    [SerializeField] private float yMinLimit = -20f;
+    [SerializeField] private float yMaxLimit = 80f;
 
-    public CharacterMovement characterMovement; 
+    [SerializeField] private CharacterMovement characterMovement;
+    [SerializeField] private MouseLock mouseLock;
 
     private float x = 0.0f;
     private float y = 0.0f;
@@ -22,10 +23,9 @@ public class CameraOrbit : MonoBehaviour
     {
         if (target == null)
         {
-            enabled = false; 
+            enabled = false;
             return;
         }
-
         
         if (characterMovement == null)
         {
@@ -43,7 +43,7 @@ public class CameraOrbit : MonoBehaviour
     {
         if (target)
         {
-            if (!Input.GetKey(KeyCode.Tab))
+            if (!mouseLock.IsCursorVisible())
             {
                 x += Input.GetAxis("Mouse X") * xSpeed * Time.deltaTime;
                 y -= Input.GetAxis("Mouse Y") * ySpeed * Time.deltaTime;
