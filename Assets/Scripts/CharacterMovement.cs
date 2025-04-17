@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class CharacterMovement : MonoBehaviour
 {
@@ -15,34 +16,46 @@ public class CharacterMovement : MonoBehaviour
     public float fireballForce = 20f;
     public Vector3 fireballSpawnOffset = Vector3.zero;
 
-    // Система здоровья
-    public float maxHealth = 100f; // Максимальное здоровье
-    public float health;           // Текущее здоровье, делаем public для наблюдения в инспекторе, но лучше использовать свойство для контроля доступа
-
     private Transform cameraTransform;
+
     private Animator animator;
     private Rigidbody rb;
-    private bool isJumping = false;
+    private HealthSystem playerHealth;
+    private AttackSystem playerAttack;
+
+    private bool isMoving;
+    private bool isRunning;
+    private float currentMoveSpeed;
+
+    private bool isJumping;
     private bool isGrounded;
-    private bool isRunning = false;
-    private bool isAttacking = false;
-    private bool isMagicAttacking = false;
-    private bool isDead = false; // Добавляем флаг смерти
 
-    public bool isActuallyJumping = false;
+    private Vector3 cameraForward;
+    private Vector3 cameraRight;
 
-    // Свойство для доступа к здоровью извне, но с защитой от прямой записи (опционально, но хорошая практика)
-    public float Health
+    private KeyCode[] moveKeyCodes = new KeyCode[]
     {
-        get { return health; }
-        private set { health = value; } // Теперь здоровье можно менять только внутри этого класса
-    }
+        KeyCode.W,
+        KeyCode.A,
+        KeyCode.S,
+        KeyCode.D
+    };
+
+    private bool isAttacking;
+    private HitboxScript playerAttackHitbox;
+    private bool isMagicAttacking;
+
+    private string animatorMoveBool = "IsMoving";
+    private string animatorRunBool = "IsRunning";
+    private string animatorJumpBool = "IsJumping";
+    private string animatorPhysicalAttackTrigger = "PhysicalAttack";
+    private string animatorMagicalAttackTrigger = "MagicalAttack";
+    private string animatorDeathTrigger = "Death";
 
 
-    void Start()
+    void Awake()
     {
         cameraTransform = Camera.main.transform;
-
         if (cameraTransform == null)
         {
             enabled = false;
@@ -50,184 +63,195 @@ public class CharacterMovement : MonoBehaviour
         }
 
         animator = GetComponent<Animator>();
-        if (animator == null)
-        {
-            enabled = false;
-            return;
-        }
-
         rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            enabled = false;
-            return;
-        }
+        playerHealth = GetComponent<HealthSystem>();
+        playerAttack = GetComponent<AttackSystem>();
 
-        if (fireballPrefab == null)
-        {
-            enabled = false;
-            return;
-        }
+        isMoving = false;
+        isRunning = false;
 
-        // Инициализация здоровья при старте игры
-        Health = maxHealth; // Используем свойство для установки начального значения
+        isJumping = false;
+        CheckForGround();
+
+        isAttacking = false;
+        playerAttackHitbox = GetComponentInChildren<HitboxScript>();
+        isMagicAttacking = false;
+
+        UpdateCameraAxis();
     }
 
     void FixedUpdate()
     {
-        RaycastHit hit;
-        isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance + 0.1f);
-
+        CheckForGround();
     }
 
     void Update()
     {
-        // Если персонаж мертв, не позволяем ему двигаться или атаковать
-        CheckHealth();
-        if (isDead) return;
-
-        bool isMoving = false;
-        bool isMovingBack = false;
-        isRunning = false;
-        Vector3 moveDirection = Vector3.zero;
-        float currentMoveSpeed = moveSpeed;
-
-
-        Vector3 cameraForward = cameraTransform.forward;
-        cameraForward.y = 0;
-        cameraForward.Normalize();
-
-        Vector3 cameraRight = cameraTransform.right;
-        cameraRight.y = 0;
-        cameraRight.Normalize();
-
-
-        if (!isJumping && !isAttacking && !isMagicAttacking)
+        if (playerHealth.IsDead())
         {
-            if (Input.GetKey(KeyCode.A))
-            {
-                isMoving = true;
-                transform.Rotate(Vector3.up, -rotationSpeed * Time.deltaTime);
-            }
-            if (Input.GetKey(KeyCode.D))
-            {
-                isMoving = true;
-                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime);
-            }
+            rb.constraints = RigidbodyConstraints.FreezeAll;
+            OnPlayerDeath();
+            return;
         }
 
+        Vector3 moveDirection = Vector3.zero;
+        UpdateCameraAxis();
 
-
-        if (!isJumping && !isAttacking && !isMagicAttacking)
+        if (CanMove())
         {
-            if (Input.GetKey(KeyCode.W))
+            if (IsPressingMoveKeys(moveKeyCodes)) isMoving = true;
+            else
             {
-                isMoving = true;
-                moveDirection += cameraForward;
+                isMoving = false;
+                animator.SetBool(animatorMoveBool, isMoving);
+            }
+
+            if (Input.GetKey(KeyCode.LeftShift) && CanMove())
+            {
+                isRunning = true;
+                currentMoveSpeed = runSpeed;
+            }
+            else
+            {
+                isRunning = false;
+                currentMoveSpeed = moveSpeed;
+            }
+            animator.SetBool(animatorRunBool, isRunning);
+
+            if (isMoving)
+            {
+                if (Input.GetKey(KeyCode.W))
+                {
+                    moveDirection += cameraForward;
+                }
+                else if (Input.GetKey(KeyCode.S))
+                {
+                    moveDirection -= cameraForward;
+                }
 
                 if (Input.GetKey(KeyCode.A))
                 {
                     moveDirection -= cameraRight;
                 }
-                if (Input.GetKey(KeyCode.D))
+                else if (Input.GetKey(KeyCode.D))
                 {
                     moveDirection += cameraRight;
                 }
 
-                if (moveDirection != Vector3.zero)
-                {
-                    moveDirection.Normalize();
+                moveDirection.Normalize();
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
 
-                    if (Input.GetKey(KeyCode.LeftShift))
-                    {
-                        isRunning = true;
-                        currentMoveSpeed = runSpeed;
-                    }
-
-                    Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-
-                    transform.Translate(moveDirection * currentMoveSpeed * Time.deltaTime, Space.World);
-                }
-            }
-            else if (Input.GetKey(KeyCode.S))
-            {
-                isMovingBack = true;
-                moveDirection -= cameraForward;
-
-                if (moveDirection != Vector3.zero)
-                {
-                    moveDirection.Normalize();
-                    currentMoveSpeed = moveSpeed;
-
-                    Quaternion targetRotation = Quaternion.LookRotation(-moveDirection);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-
-                    transform.Translate(moveDirection * currentMoveSpeed * Time.deltaTime, Space.World);
-                }
+                transform.Translate(moveDirection * currentMoveSpeed * Time.deltaTime, Space.World);
+                animator.SetBool(animatorMoveBool, isMoving);
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.Space) && CanJump()) isJumping = true;
+        animator.SetBool(animatorJumpBool, isJumping);
 
-
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded && !isJumping && !isMagicAttacking)
+        if (Input.GetMouseButtonDown(0) && CanAttack())
         {
-            PerformJump();
-        }
-
-
-        if (Input.GetMouseButtonDown(0) && !isAttacking && !isMagicAttacking && isGrounded)
-        {
-
             RotateTowardsCamera(true);
             isAttacking = true;
-            animator.SetTrigger("Attack");
+            animator.SetTrigger(animatorPhysicalAttackTrigger);
         }
 
-
-        if (Input.GetMouseButtonDown(1) && !isMagicAttacking && !isAttacking && isGrounded)
+        if (Input.GetMouseButtonDown(1) && CanAttack())
         {
-
             RotateTowardsCamera(true);
             isMagicAttacking = true;
-            animator.SetTrigger("MagicAttack");
-
-        }
-
-
-        animator.SetBool("IsMoving", isMoving);
-        animator.SetBool("IsMovingBack", isMovingBack);
-        animator.SetBool("IsJumping", isJumping);
-        animator.SetBool("IsRunning", isRunning);
-
-        // Тест урона (убрать потом, это только для проверки)
-        if (Input.GetKeyDown(KeyCode.T))
-        {
-            TakeDamage(10f); // Наносим 10 единиц урона при нажатии 'T'
+            animator.SetTrigger(animatorMagicalAttackTrigger);
         }
     }
-
 
     private void RotateTowardsCamera(bool forceInstantRotation = false)
     {
-        Vector3 cameraForward = cameraTransform.forward;
-        cameraForward.y = 0;
-        cameraForward.Normalize();
+        UpdateCameraAxis();
         Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
 
         if (forceInstantRotation)
-        {
-
             transform.rotation = targetRotation;
-        }
         else
-        {
-
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-        }
     }
 
+    //Camera Logic
+    private void UpdateCameraAxis()
+    {
+        cameraForward = cameraTransform.forward;
+        cameraForward.y = 0;
+        cameraForward.Normalize();
 
+        cameraRight = cameraTransform.right;
+        cameraRight.y = 0;
+        cameraRight.Normalize();
+    }
+
+    //Movement Logic
+    private bool CanMove()
+    {
+        return !isJumping && !isAttacking && !isMagicAttacking;
+    }
+    private bool IsPressingMoveKeys(KeyCode[] moveKeyCodes)
+    {
+        foreach (KeyCode key in moveKeyCodes)
+        {
+            if (Input.GetKey(key))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Jump Logic
+    private void CheckForGround()
+    {
+        RaycastHit hit;
+        isGrounded = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance + 0.1f);
+    }
+    private bool CanJump()
+    {
+        return isGrounded && !isJumping && !isAttacking && !isMagicAttacking;
+    }
+    public void OnJumpAnimationAddForce()
+    {
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+    }
+    public void OnJumpAnimationEnd()
+    {
+        isJumping = false;
+        animator.SetBool(animatorJumpBool, false);
+    }
+    public bool GetJumpState()
+    {
+        return isJumping;
+    }
+
+    //Attack Logic
+    private bool CanAttack()
+    {
+        return !isAttacking && !isMagicAttacking && isGrounded;
+    }
+    public void OnPhysicalAttackStart()
+    {
+        playerAttackHitbox.EnableHitbox();
+    }
+    public void OnPhysicalAttackEnd()
+    {
+        playerAttackHitbox.DisableHitbox();
+        isAttacking = false;
+    }
+    public void OnMagicalAttackStart()
+    {
+        
+    }
+    public void OnMagicalAttackEnd()
+    {
+        isMagicAttacking = false;
+    }
+    /*
     public void SpawnFireball()
     {
         if (fireballPrefab != null)
@@ -245,82 +269,10 @@ public class CharacterMovement : MonoBehaviour
 
         }
 
-    }
+    }*/
 
-
-    public void PerformJumpForce()
+    private void OnPlayerDeath()
     {
-        isActuallyJumping = true;
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-    }
-
-    public void OnAttackAnimationEnd()
-    {
-        isAttacking = false;
-    }
-
-    public void OnMagicAttackAnimationEnd()
-    {
-        isMagicAttacking = false;
-    }
-
-    public void OnJumpAnimationEnd()
-    {
-        isJumping = false;
-        animator.SetBool("IsJumping", false);
-        isActuallyJumping = false;
-    }
-
-
-    public void PerformJump()
-    {
-        if (!isJumping && isGrounded)
-        {
-            isJumping = true;
-            animator.SetBool("IsJumping", true);
-        }
-    }
-
-    // Метод для получения урона
-    public void TakeDamage(float damage)
-    {
-        if (isDead) return; // Если уже мертв, урон не принимаем
-
-        Health -= damage; // Используем свойство для изменения здоровья
-
-        CheckHealth();
-
-        Debug.Log("Персонаж получил урон: " + damage + ". Здоровье: " + Health); // Для отладки
-    }
-
-    private void CheckHealth()
-    {
-        if (Health <= 0)
-        {
-            Health = 0; // Убедимся, что здоровье не уходит в минус
-            Die();
-        }
-    }
-
-    // Метод смерти
-    void Die()
-    {
-        isDead = true;
-        animator.SetTrigger("Death"); // Запускаем анимацию смерти по триггеру "Death"
-        Debug.Log("Персонаж умер!");
-
-        // Отключаем скрипт движения, чтобы персонаж перестал двигаться
         enabled = false;
-
-        // Можно добавить другие действия при смерти, например, отключение коллайдера,
-        // вызов события смерти, перезапуск уровня и т.д.
-    }
-
-    // Функция вызывается анимацией в конце анимации смерти (если нужно что-то сделать после анимации смерти)
-    public void OnDeathAnimationEnd()
-    {
-        // Например, можно здесь отключить игровой объект персонажа через Destroy(gameObject);
-        // или перезапустить уровень
-        Debug.Log("Анимация смерти завершена.");
     }
 }
