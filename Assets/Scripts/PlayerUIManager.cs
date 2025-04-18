@@ -39,6 +39,8 @@ public class PlayerUIManager : MonoBehaviour
 
     private void Start()
     {
+        gameOverScreenPanel.SetActive(false);
+
         if (playerHealthSystem == null || playerManaSystem == null)
         {
             enabled = false;
