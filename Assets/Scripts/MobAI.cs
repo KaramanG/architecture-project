@@ -1,43 +1,119 @@
 using UnityEngine;
-using UnityEngine.AI; // Обязательно подключаем пространство имен для NavMeshAgent
+using UnityEngine.AI;
 
 public class MobAI : MonoBehaviour
 {
-    public float speed = 3.5f;       // Скорость моба, настраивается в инспекторе
-    public float stoppingDistance = 1.5f; // Дистанция остановки перед персонажем
+    [SerializeField] private float mobSpeed;
+    [SerializeField] private float mobStoppingDistance;
+    [SerializeField] private float mobAgroRadius;
+    [SerializeField] private float mobAttackRate;
 
-    private NavMeshAgent agent;
-    private Transform playerTransform;
+    private HealthSystem mobHealth;
+    private float lastAttackTime;
 
-    void Start()
+    private Rigidbody mobRigidbody;
+    private NavMeshAgent navMeshAgent;
+
+    private Animator mobAnimator;
+
+    [Header("Animator")]
+    [SerializeField] private string isWalkingBoolName = "IsWalking";
+    [SerializeField] private string attackTriggerName = "Attack";
+    [SerializeField] private string deathTriggerName = "Death";
+
+    private GameObject player;
+
+    private void Awake()
     {
-        // Получаем компонент NavMeshAgent, который должен быть на этом же объекте
-        agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        mobHealth = GetComponent<HealthSystem>();
+
+        mobRigidbody = GetComponent<Rigidbody>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        
+        mobAnimator = GetComponent<Animator>();
+
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
         {
-            Debug.LogError("NavMeshAgent компонент не найден на объекте " + gameObject.name);
-            return; // Прерываем выполнение, если нет NavMeshAgent
+            return;
         }
 
-        // Ищем персонажа по тегу "Player". Убедись, что у твоего персонажа есть тег "Player"
-        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
-        if (playerTransform == null)
-        {
-            Debug.LogError("Персонаж с тегом 'Player' не найден на сцене. Убедитесь, что ваш персонаж имеет тег 'Player'.");
-            return; // Прерываем выполнение, если игрок не найден
-        }
-
-        // Настраиваем NavMeshAgent
-        agent.speed = speed;
-        agent.stoppingDistance = stoppingDistance;
+        navMeshAgent.speed = mobSpeed;
+        navMeshAgent.stoppingDistance = mobStoppingDistance;
     }
 
     void Update()
     {
-        // Если персонаж найден и NavMeshAgent существует, указываем ему цель - позицию персонажа
-        if (playerTransform != null && agent != null)
+        if (mobHealth.IsDead())
         {
-            agent.SetDestination(playerTransform.position); // Задаем точку назначения - позицию персонажа
+            OnMobDeath();
+            return;
         }
+
+        if (navMeshAgent == null || player == null) { return; }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
+        if (distanceToPlayer < mobAgroRadius)
+        {
+            if (distanceToPlayer > mobStoppingDistance)
+            {
+                if (navMeshAgent.isStopped)
+                    navMeshAgent.isStopped = false;
+                navMeshAgent.SetDestination(player.transform.position);
+                mobAnimator.SetBool(isWalkingBoolName, true);
+            }
+            else
+            {
+                EnterCombat();
+            }
+        }
+        else
+        {
+            if (navMeshAgent.hasPath)
+                navMeshAgent.ResetPath();
+            if (!navMeshAgent.isStopped)
+                navMeshAgent.isStopped = true;
+            mobAnimator.SetBool(isWalkingBoolName, false);
+        }
+    }
+
+    private void EnterCombat()
+    {
+        if (navMeshAgent == null || player == null) { return; }
+
+        navMeshAgent.isStopped = true;
+        mobAnimator.SetBool(isWalkingBoolName, false);
+
+        Vector3 lookPos = player.transform.position - transform.position;
+        lookPos.y = 0;
+
+        if (lookPos != Vector3.zero)
+        {
+            Quaternion rotation = Quaternion.LookRotation(lookPos);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rotation, Time.deltaTime * 10f);
+        }
+
+        if (Time.time >= lastAttackTime + (1f / mobAttackRate))
+        {
+            AttackPlayer();
+            lastAttackTime = Time.time;
+        }
+    }
+
+    private void AttackPlayer()
+    {
+        mobAnimator.SetTrigger(attackTriggerName);
+    }
+
+    private void OnMobDeath()
+    {
+        navMeshAgent.isStopped = true;
+        mobRigidbody.constraints = RigidbodyConstraints.FreezeAll;
+        this.enabled = false;
+    }
+
+    public void DespawnMob()
+    {
+        Destroy(gameObject);
     }
 }
