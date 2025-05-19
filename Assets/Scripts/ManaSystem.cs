@@ -34,7 +34,11 @@ public class ManaSystem : MonoBehaviour
 
     private void Awake()
     {
-        mana = maxMana;
+        if (!SaveSystem.IsLoading())
+        {
+            mana = maxMana;
+        }
+
         OnManaChanged?.Invoke(_mana, maxMana);
         canRegenMana = true;
     }
@@ -55,5 +59,10 @@ public class ManaSystem : MonoBehaviour
         if (mana < amount) return;
 
         mana -= amount;
+    }
+
+    public void SetMana(float newMana)
+    {
+        mana = newMana;
     }
 }

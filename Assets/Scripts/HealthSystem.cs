@@ -33,13 +33,18 @@ public class HealthSystem : MonoBehaviour
     public UnityEvent<float, float> OnHealthChanged;
 
     [SerializeField] private HealthBar healthBar;
+    [SerializeField] private bool isPlayer;
 
     private bool isDead;
     private Animator animator;
 
     private void Awake()
     {
-        health = maxHealth;
+        if (!(SaveSystem.IsLoading() && isPlayer))
+        {
+            health = maxHealth;
+        }
+        
         isDead = false;
 
         OnHealthChanged?.Invoke(_health, maxHealth);
@@ -74,5 +79,11 @@ public class HealthSystem : MonoBehaviour
         animator.SetTrigger("Death");
 
         OnPlayerDied?.Invoke();
+    }
+
+    public void SetHealth(float newHealth)
+    {
+        health = newHealth;
+        healthBar.UpdateHealthBar();
     }
 }
