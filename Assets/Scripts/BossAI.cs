@@ -1,319 +1,273 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
+using UnityEngine.AI; // Если используешь NavMeshAgent
 
 public class BossAI : MonoBehaviour
 {
-    // Параметры босса
-    [Header("Boss Parameters")]
-    [SerializeField] private float bossSpeed;
-    [SerializeField] private float attackStoppingDistance; // Дистанция, на которой босс останавливается для атаки
-    [SerializeField] private float agroRadius; // Радиус, в котором босс становится агрессивным
-
-    [Header("Attack Parameters")]
-    [SerializeField] private float normalAttackRate = 1f; // Атак в секунду для обычной атаки
-    [SerializeField] private float strongAttackRate = 0.5f; // Атак в секунду для сильной атаки
-    [Range(0f, 1f)][SerializeField] private float strongAttackChance = 0.3f; // Шанс использовать сильную атаку при готовности
-
-    // Время последней атаки
-    private float lastNormalAttackTime;
-    private float lastStrongAttackTime;
-
-    // Компоненты
-    private HealthSystem bossHealth;
-    private Rigidbody bossRigidbody;
-    private NavMeshAgent navMeshAgent;
-    private Animator bossAnimator;
-
-    // Имена параметров аниматора
-    [Header("Animator Parameters")]
-    [SerializeField] private string isWalkingBoolName = "IsWalking";
-    [SerializeField] private string normalAttackTriggerName = "Attack"; // Имя триггера для обычной атаки
-    [SerializeField] private string strongAttackTriggerName = "StrongAttack"; // Имя триггера для сильной атаки
-    [SerializeField] private string deathTriggerName = "Death"; // Имя триггера смерти (используется HealthSystem)
-
-    private GameObject player;
-
-    // Состояния босса
-    private enum BossState
+    public enum BossState
     {
-        Idle,           // Покой
-        Chase,          // Преследование (Агрессия)
-        Attacking,      // Обычная атака
-        StrongAttacking,// Сильная атака
-        Dead            // Смерть
+        Patrolling,
+        Chasing,
+        Attacking // Опционально, если атака - отдельное состояние
     }
 
-    private BossState currentState;
+    [Header("Состояние")]
+    public BossState currentState = BossState.Patrolling;
 
-    private void Awake()
+    [Header("Ссылки")]
+    public Transform playerTransform;
+    private NavMeshAgent agent; // Если используется NavMesh
+    private Animator animator;  // Если есть аниматор
+
+    [Header("Характеристики")]
+    public float health = 100f;
+    public float detectionRadius = 20f; // На всякий случай, если захочешь агрить по близости потом
+    public float attackRange = 2f;
+    public float attackCooldown = 2f;
+    private float currentAttackCooldown = 0f;
+
+    [Header("Патрулирование")]
+    public Transform[] patrolPoints;
+    public float patrolSpeed = 2f;
+    private int currentPatrolIndex = 0;
+    public float waypointProximityThreshold = 1f; // Насколько близко нужно подойти к точке патруля
+
+    [Header("Преследование")]
+    public float chaseSpeed = 4f;
+
+    // Флаг, был ли босс спровоцирован
+    private bool isProvoked = false;
+
+    void Start()
     {
-        bossHealth = GetComponent<HealthSystem>();
-        if (bossHealth == null) Debug.LogError("BossAI requires a HealthSystem component.");
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>(); // Получаем Animator, если он есть
 
-        bossRigidbody = GetComponent<Rigidbody>();
-        if (bossRigidbody == null) Debug.LogWarning("BossAI does not have a Rigidbody. Death constraint won't apply.");
-
-        navMeshAgent = GetComponent<NavMeshAgent>();
-        if (navMeshAgent == null) Debug.LogError("BossAI requires a NavMeshAgent component.");
-
-        bossAnimator = GetComponent<Animator>();
-        if (bossAnimator == null) Debug.LogError("BossAI requires an Animator component.");
-
-        // Ищем игрока по тегу. Убедись, что у игрока есть тэг "Player"!
-        player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null)
+        // Попытка найти игрока по тегу, если не назначен вручную
+        if (playerTransform == null)
         {
-            Debug.LogError("BossAI cannot find player with tag 'Player'. Boss will remain idle.");
-            // Не возвращаемся, позволяем остальным компонентам инициализироваться
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                playerTransform = playerObj.transform;
+            }
+            else
+            {
+                Debug.LogError("Игрок не найден! Убедитесь, что у игрока есть тег 'Player' или назначьте его вручную.");
+                enabled = false; // Выключаем скрипт, если игрока нет
+                return;
+            }
         }
 
-        // Настраиваем NavMeshAgent
-        if (navMeshAgent != null)
+        if (agent != null && patrolPoints.Length > 0)
         {
-            navMeshAgent.speed = bossSpeed;
-            navMeshAgent.stoppingDistance = attackStoppingDistance;
-            navMeshAgent.updateRotation = true; // Позволяем NavMeshAgent вращать объект
-            navMeshAgent.updatePosition = true;
+            agent.speed = patrolSpeed;
+            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            currentState = BossState.Patrolling;
         }
-
-        // Устанавливаем начальное состояние
-        SetState(BossState.Idle);
+        else if (agent == null)
+        {
+            Debug.LogWarning("NavMeshAgent не найден на боссе. Движение не будет работать.");
+            // Можно реализовать простое движение без NavMesh, если нужно
+        }
+        else if (patrolPoints.Length == 0)
+        {
+            Debug.LogWarning("Точки патрулирования не заданы. Босс будет стоять на месте до провокации.");
+            currentState = BossState.Patrolling; // Остается в патруле, но ничего не делает
+        }
     }
 
     void Update()
     {
-        // Проверяем состояние смерти первым делом
-        if (bossHealth != null && bossHealth.IsDead())
+        if (playerTransform == null) return; // Если игрок исчез или не был найден
+
+        if (currentAttackCooldown > 0)
         {
-            SetState(BossState.Dead);
-            return; // Если босс мертв, ничего больше не делаем
+            currentAttackCooldown -= Time.deltaTime;
         }
 
-        // Если нет игрока или NavMeshAgent, не двигаемся
-        if (player == null || navMeshAgent == null)
-        {
-            // Если игрок был потерян, переходим в покой
-            if (currentState != BossState.Idle)
-            {
-                SetState(BossState.Idle);
-            }
-            return;
-        }
-
-        // Логика в зависимости от текущего состояния
         switch (currentState)
         {
-            case BossState.Idle:
-                UpdateIdleState();
-                break;
-            case BossState.Chase:
-                UpdateChaseState();
-                break;
-            case BossState.Attacking:
-                UpdateAttackingState();
-                break;
-            case BossState.StrongAttacking:
-                UpdateStrongAttackingState();
-                break;
-            case BossState.Dead:
-                // В состоянии смерти Update ничего не делает
-                break;
-        }
-    }
-
-    // Метод для смены состояния
-    private void SetState(BossState newState)
-    {
-        if (currentState == newState) return; // Избегаем повторной установки того же состояния
-
-        // Логика выхода из текущего состояния (если нужна)
-        ExitState(currentState);
-
-        // Устанавливаем новое состояние
-        currentState = newState;
-
-        // Логика входа в новое состояние
-        EnterState(newState);
-    }
-
-    // Методы входа в состояние
-    private void EnterState(BossState state)
-    {
-        //Debug.Log($"Entering State: {state}"); // Отладочное сообщение
-
-        switch (state)
-        {
-            case BossState.Idle:
-                if (navMeshAgent != null) navMeshAgent.isStopped = true;
-                if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, false);
-                // Возможно, проиграть анимацию покоя (если она не цикл по умолчанию)
-                break;
-
-            case BossState.Chase:
-                if (navMeshAgent != null)
+            case BossState.Patrolling:
+                HandlePatrolling();
+                // Если isProvoked стал true (из TakeDamage), переключаемся
+                if (isProvoked)
                 {
-                    navMeshAgent.isStopped = false;
-                    // Destination будет устанавливаться в UpdateChaseState
+                    SwitchToChaseState();
                 }
-                if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, true);
+                break;
+
+            case BossState.Chasing:
+                HandleChasing();
                 break;
 
             case BossState.Attacking:
-                if (navMeshAgent != null) navMeshAgent.isStopped = true;
-                if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, false);
-                LookAtPlayer(); // Поворачиваемся к игроку перед атакой
-                if (bossAnimator != null && !string.IsNullOrEmpty(normalAttackTriggerName))
+                HandleAttacking();
+                break;
+        }
+
+        // Обновление анимаций (пример)
+        if (animator != null && agent != null)
+        {
+            animator.SetFloat("Speed", agent.velocity.magnitude);
+        }
+    }
+
+    void HandlePatrolling()
+    {
+        if (agent == null || patrolPoints.Length == 0) return;
+
+        agent.speed = patrolSpeed;
+        if (!agent.pathPending && agent.remainingDistance < waypointProximityThreshold)
+        {
+            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        }
+        // В этом состоянии босс не ищет игрока активно
+    }
+
+    void HandleChasing()
+    {
+        if (agent == null || playerTransform == null) return;
+
+        agent.speed = chaseSpeed;
+        agent.SetDestination(playerTransform.position);
+
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+        if (distanceToPlayer <= attackRange)
+        {
+            SwitchToAttackState();
+        }
+        // Опционально: если игрок убежал слишком далеко, можно вернуться к патрулированию
+        // if (distanceToPlayer > someMaxChaseDistance) { SwitchToPatrolState(); isProvoked = false; }
+    }
+
+    void HandleAttacking()
+    {
+        if (agent == null || playerTransform == null) return;
+
+        agent.SetDestination(transform.position); // Остановиться для атаки
+        // Поворот к игроку
+        Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(directionToPlayer.x, 0, directionToPlayer.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+
+
+        if (currentAttackCooldown <= 0f)
+        {
+            PerformAttack();
+            currentAttackCooldown = attackCooldown;
+        }
+
+        // Проверка, не вышел ли игрок из зоны атаки
+        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+        if (distanceToPlayer > attackRange)
+        {
+            SwitchToChaseState();
+        }
+    }
+
+    void PerformAttack()
+    {
+        Debug.Log("Босс атакует игрока!");
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack"); // Предполагается, что есть триггер "Attack" в аниматоре
+        }
+        // Здесь логика нанесения урона игроку
+        // Например: playerTransform.GetComponent<PlayerHealth>().TakeDamage(bossDamage);
+    }
+
+    public void TakeDamage(float amount)
+    {
+        health -= amount;
+        Debug.Log($"Босс получил {amount} урона. Здоровье: {health}");
+
+        if (!isProvoked)
+        {
+            isProvoked = true;
+            Debug.Log("Босс спровоцирован!");
+            // Немедленно переключаемся на преследование, если босс был в патруле
+            if (currentState == BossState.Patrolling)
+            {
+                SwitchToChaseState();
+            }
+        }
+
+        if (health <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log("Босс побежден!");
+        if (animator != null)
+        {
+            animator.SetTrigger("Die"); // Предполагается, что есть триггер "Die"
+        }
+        // Отключить компонент AI или уничтожить объект
+        // agent.enabled = false; // если есть NavMeshAgent
+        // this.enabled = false;
+        Destroy(gameObject, 3f); // Уничтожить через 3 секунды, чтобы анимация смерти проигралась
+    }
+
+    void SwitchToChaseState()
+    {
+        Debug.Log("Босс: Переход в состояние ПРЕСЛЕДОВАНИЯ");
+        currentState = BossState.Chasing;
+        if (agent != null) agent.speed = chaseSpeed;
+        if (animator != null) animator.SetBool("IsChasing", true); // Пример анимационного параметра
+    }
+
+    void SwitchToAttackState()
+    {
+        Debug.Log("Босс: Переход в состояние АТАКИ");
+        currentState = BossState.Attacking;
+        if (animator != null) animator.SetBool("IsChasing", false); // Возможно, выключить анимацию бега
+    }
+
+    // Если нужно будет вернуться к патрулю (например, если игрок далеко убежал и босс "потерял" его)
+    // void SwitchToPatrolState()
+    // {
+    //     Debug.Log("Босс: Переход в состояние ПАТРУЛИРОВАНИЯ");
+    //     currentState = BossState.Patrolling;
+    //     isProvoked = false; // Сбрасываем провокацию
+    //     if (agent != null && patrolPoints.Length > 0)
+    //     {
+    //         agent.speed = patrolSpeed;
+    //         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+    //     }
+    //     if (animator != null) animator.SetBool("IsChasing", false);
+    // }
+
+    // Отрисовка радиусов в редакторе для удобства
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            Gizmos.color = Color.green;
+            for (int i = 0; i < patrolPoints.Length; i++)
+            {
+                if (patrolPoints[i] != null)
                 {
-                    bossAnimator.SetTrigger(normalAttackTriggerName);
+                    Gizmos.DrawSphere(patrolPoints[i].position, 0.3f);
+                    if (i < patrolPoints.Length - 1 && patrolPoints[i + 1] != null)
+                    {
+                        Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[i + 1].position);
+                    }
+                    else if (patrolPoints.Length > 1 && patrolPoints[0] != null) // Замкнуть путь
+                    {
+                        Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[0].position);
+                    }
                 }
-                lastNormalAttackTime = Time.time;
-                // Переход из этого состояния произойдет по событию анимации или таймеру
-                break;
-
-            case BossState.StrongAttacking:
-                if (navMeshAgent != null) navMeshAgent.isStopped = true;
-                if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, false);
-                LookAtPlayer(); // Поворачиваемся к игроку перед атакой
-                if (bossAnimator != null && !string.IsNullOrEmpty(strongAttackTriggerName))
-                {
-                    bossAnimator.SetTrigger(strongAttackTriggerName);
-                }
-                lastStrongAttackTime = Time.time;
-                // Переход из этого состояния произойдет по событию анимации или таймеру
-                break;
-
-            case BossState.Dead:
-                if (navMeshAgent != null) navMeshAgent.isStopped = true;
-                if (bossRigidbody != null) bossRigidbody.constraints = RigidbodyConstraints.FreezeAll;
-                // Анимация смерти запускается HealthSystem
-                this.enabled = false; // Отключаем скрипт AI после смерти
-                break;
-        }
-    }
-
-    // Методы выхода из состояния (сейчас в основном обнуляют действия)
-    private void ExitState(BossState state)
-    {
-        switch (state)
-        {
-            case BossState.Chase:
-                if (navMeshAgent != null) navMeshAgent.ResetPath(); // Останавливаем преследование
-                break;
-                // Для состояний атаки выход происходит по завершению анимации (через события)
-        }
-    }
-
-    // Методы обновления состояний (вызываются в Update())
-    private void UpdateIdleState()
-    {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
-        if (distanceToPlayer < agroRadius)
-        {
-            SetState(BossState.Chase); // Игрок вошел в радиус агрессии
-        }
-    }
-
-    private void UpdateChaseState()
-    {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
-
-        if (distanceToPlayer >= agroRadius)
-        {
-            SetState(BossState.Idle); // Игрок вышел из радиуса агрессии (или был потерян)
-            return;
-        }
-
-        if (distanceToPlayer <= attackStoppingDistance)
-        {
-            // Остановились, чтобы атаковать
-            if (navMeshAgent != null) navMeshAgent.isStopped = true;
-            if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, false);
-
-            // Логика выбора атаки
-            bool canNormalAttack = (Time.time >= lastNormalAttackTime + (1f / normalAttackRate));
-            bool canStrongAttack = (Time.time >= lastStrongAttackTime + (1f / strongAttackRate));
-
-            if (canStrongAttack && Random.value < strongAttackChance)
-            {
-                SetState(BossState.StrongAttacking);
             }
-            else if (canNormalAttack)
-            {
-                SetState(BossState.Attacking);
-            }
-            // Если ни одна атака не готова, остаемся в Chase, но стоим и ждем
         }
-        else
-        {
-            // Преследуем игрока
-            if (navMeshAgent != null && navMeshAgent.destination != player.transform.position)
-            {
-                if (navMeshAgent.isStopped) navMeshAgent.isStopped = false;
-                navMeshAgent.SetDestination(player.transform.position);
-            }
-            if (bossAnimator != null) bossAnimator.SetBool(isWalkingBoolName, true);
-        }
-    }
-
-    private void UpdateAttackingState()
-    {
-        // В этом состоянии мы просто ждем завершения анимации атаки.
-        // Переход обратно в Chase будет вызван из события анимации.
-        // Можно добавить таймер на случай, если событие не сработает, но события лучше.
-    }
-
-    private void UpdateStrongAttackingState()
-    {
-        // В этом состоянии мы просто ждем завершения анимации сильной атаки.
-        // Переход обратно в Chase будет вызван из события анимации.
-    }
-
-    // Вспомогательные методы
-
-    // Метод для поворота к игроку
-    private void LookAtPlayer()
-    {
-        if (player == null) return;
-
-        Vector3 lookPos = player.transform.position - transform.position;
-        lookPos.y = 0; // Остаемся на одной плоскости
-        if (lookPos == Vector3.zero) return; // Избегаем ошибки, если находимся в той же точке
-
-        Quaternion targetRotation = Quaternion.LookRotation(lookPos);
-        // Плавный поворот
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
-        // Мгновенный поворот (можно использовать, если плавный поворот не нужен перед атакой)
-        // transform.rotation = targetRotation;
-    }
-
-    // Методы, вызываемые из Animation Events
-    // В анимации обычной атаки добавь событие (Animation Event) в конце анимации,
-    // которое вызывает эту функцию.
-    public void OnNormalAttackAnimationEnd()
-    {
-        //Debug.Log("Normal Attack Animation End"); // Отладочное сообщение
-        // После атаки возвращаемся в состояние преследования, чтобы ИИ решил, что делать дальше
-        SetState(BossState.Chase);
-    }
-
-    // В анимации сильной атаки добавь событие (Animation Event) в конце анимации,
-    // которое вызывает эту функцию.
-    public void OnStrongAttackAnimationEnd()
-    {
-        //Debug.Log("Strong Attack Animation End"); // Отладочное сообщение
-        // После атаки возвращаемся в состояние преследования
-        SetState(BossState.Chase);
-    }
-
-    // Этот метод может быть вызван извне (например, HealthSystem) или самим AI (в данном случае, DeathState его вызывает через disable)
-    // Но HealthSystem уже вызывает Death триггер, и мы отключаем скрипт в EnterState(BossState.Dead)
-    // Так что отдельный OnBossDeath не нужен, его логика интегрирована в EnterState(BossState.Dead).
-
-    // Метод для деспавна босса (если нужен)
-    public void DespawnBoss()
-    {
-        Destroy(gameObject);
     }
 }
