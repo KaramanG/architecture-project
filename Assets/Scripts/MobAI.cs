@@ -10,10 +10,12 @@ public class MobAI : MonoBehaviour
 
     private HealthSystem mobHealth;
     private float lastAttackTime;
+    private bool wasPreviouslyAgro = false;
 
     private Rigidbody mobRigidbody;
     private NavMeshAgent navMeshAgent;
 
+    private ZombieAudio zombieAudio;
     private Animator mobAnimator;
 
     [Header("Animator")]
@@ -29,7 +31,8 @@ public class MobAI : MonoBehaviour
 
         mobRigidbody = GetComponent<Rigidbody>();
         navMeshAgent = GetComponent<NavMeshAgent>();
-        
+
+        zombieAudio = GetComponent<ZombieAudio>();
         mobAnimator = GetComponent<Animator>();
 
         player = GameObject.FindGameObjectWithTag("Player");
@@ -53,8 +56,16 @@ public class MobAI : MonoBehaviour
         if (navMeshAgent == null || player == null) { return; }
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
-        if (distanceToPlayer < mobAgroRadius)
+        bool isCurrentlyAgro = distanceToPlayer < mobAgroRadius;
+
+        if (isCurrentlyAgro)
         {
+            if (!wasPreviouslyAgro && zombieAudio != null)
+            {
+                zombieAudio.PlayAgroSound();
+            }
+            wasPreviouslyAgro = true; 
+
             if (distanceToPlayer > mobStoppingDistance)
             {
                 if (navMeshAgent.isStopped)
@@ -69,6 +80,8 @@ public class MobAI : MonoBehaviour
         }
         else
         {
+            wasPreviouslyAgro = false;
+
             if (navMeshAgent.hasPath)
                 navMeshAgent.ResetPath();
             if (!navMeshAgent.isStopped)
@@ -103,13 +116,21 @@ public class MobAI : MonoBehaviour
     private void AttackPlayer()
     {
         mobAnimator.SetTrigger(attackTriggerName);
+        if (zombieAudio != null)
+            zombieAudio.PlayAttackSound();
     }
 
     private void OnMobDeath()
     {
+        zombieAudio.PlayDeathSound();
         navMeshAgent.isStopped = true;
         mobRigidbody.constraints = RigidbodyConstraints.FreezeAll;
-        this.enabled = false;
+        //this.enabled = false;
+    }
+
+    public void TakeStun()
+    {
+        zombieAudio.PlayStunSound();
     }
 
     public void DespawnMob()
