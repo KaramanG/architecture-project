@@ -1,254 +1,291 @@
+// BossAI.cs
 using UnityEngine;
-using UnityEngine.AI; // Если используешь NavMeshAgent
+using UnityEngine.AI;
 
+[RequireComponent(typeof(HealthSystem))]
+[RequireComponent(typeof(NavMeshAgent))]
 public class BossAI : MonoBehaviour
 {
     public enum BossState
     {
         Patrolling,
         Chasing,
-        Attacking // Опционально, если атака - отдельное состояние
+        Attacking,
+        Dead
     }
 
-    [Header("Состояние")]
+    [Header("AI State")]
     public BossState currentState = BossState.Patrolling;
 
-    [Header("Ссылки")]
+    [Header("References")]
     public Transform playerTransform;
-    private NavMeshAgent agent; // Если используется NavMesh
-    private Animator animator;  // Если есть аниматор
+    private NavMeshAgent agent;
+    private Animator animator;
+    private HealthSystem healthSystem;
 
-    [Header("Характеристики")]
-    public float health = 100f;
-    public float detectionRadius = 20f; // На всякий случай, если захочешь агрить по близости потом
-    public float attackRange = 2f;
+    [Header("Combat Stats")]
+    public float attackRange = 3f;
+    public float attackDamage = 15f;
     public float attackCooldown = 2f;
     private float currentAttackCooldown = 0f;
 
-    [Header("Патрулирование")]
+    [Header("Patrolling")]
     public Transform[] patrolPoints;
     public float patrolSpeed = 2f;
     private int currentPatrolIndex = 0;
-    public float waypointProximityThreshold = 1f; // Насколько близко нужно подойти к точке патруля
+    public float waypointProximityThreshold = 1f;
 
-    [Header("Преследование")]
-    public float chaseSpeed = 4f;
+    [Header("Chasing")]
+    public float chaseSpeed = 5f;
 
-    // Флаг, был ли босс спровоцирован
-    private bool isProvoked = false;
+    private bool isProvokedByDamage = false;
 
-    void Start()
+    void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>(); // Получаем Animator, если он есть
+        animator = GetComponent<Animator>();
+        healthSystem = GetComponent<HealthSystem>();
 
-        // Попытка найти игрока по тегу, если не назначен вручную
         if (playerTransform == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                playerTransform = playerObj.transform;
-            }
+            if (playerObj != null) playerTransform = playerObj.transform;
             else
             {
-                Debug.LogError("Игрок не найден! Убедитесь, что у игрока есть тег 'Player' или назначьте его вручную.");
-                enabled = false; // Выключаем скрипт, если игрока нет
-                return;
+                Debug.LogError("Игрок ('Player' tag) не найден! Босс не будет функционировать.");
+                enabled = false; return;
             }
-        }
-
-        if (agent != null && patrolPoints.Length > 0)
-        {
-            agent.speed = patrolSpeed;
-            agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-            currentState = BossState.Patrolling;
-        }
-        else if (agent == null)
-        {
-            Debug.LogWarning("NavMeshAgent не найден на боссе. Движение не будет работать.");
-            // Можно реализовать простое движение без NavMesh, если нужно
-        }
-        else if (patrolPoints.Length == 0)
-        {
-            Debug.LogWarning("Точки патрулирования не заданы. Босс будет стоять на месте до провокации.");
-            currentState = BossState.Patrolling; // Остается в патруле, но ничего не делает
         }
     }
 
+    void Start()
+    {
+        if (agent == null)
+        {
+            Debug.LogError("NavMeshAgent не найден на боссе. Движение не будет работать.");
+            enabled = false; return;
+        }
+        SwitchToPatrolState(); // Начинаем с патрулирования
+    }
+
+    void SwitchToPatrolState() // Вспомогательный метод для чистоты
+    {
+        if (patrolPoints.Length > 0 && agent.isOnNavMesh)
+        {
+            agent.speed = patrolSpeed;
+            if (agent.isOnNavMesh) agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+            SwitchState(BossState.Patrolling);
+        }
+        else
+        {
+            Debug.LogWarning("Точки патрулирования не заданы или NavMeshAgent не активен. Босс будет стоять на месте до провокации.");
+            SwitchState(BossState.Patrolling); // Остается в патруле, но ничего не делает
+        }
+    }
+
+
     void Update()
     {
-        if (playerTransform == null) return; // Если игрок исчез или не был найден
+        if (playerTransform == null || currentState == BossState.Dead) return;
+
+        if (healthSystem.IsDead())
+        {
+            if (currentState != BossState.Dead) SwitchState(BossState.Dead);
+            return;
+        }
 
         if (currentAttackCooldown > 0)
         {
             currentAttackCooldown -= Time.deltaTime;
         }
 
+        DecideState();
+
+        // Выполнение действий текущего состояния только если не мертв
+        if (currentState != BossState.Dead)
+        {
+            switch (currentState)
+            {
+                case BossState.Patrolling:
+                    HandlePatrolling();
+                    break;
+                case BossState.Chasing:
+                    HandleChasing();
+                    break;
+                case BossState.Attacking:
+                    HandleAttacking();
+                    break;
+            }
+        }
+        UpdateAnimatorParams();
+    }
+
+    void DecideState()
+    {
+        if (currentState == BossState.Dead) return;
+
+        if (isProvokedByDamage)
+        {
+            // Если спровоцирован, решаем: атаковать или преследовать
+            float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+            if (distanceToPlayer <= attackRange)
+            {
+                if (currentState != BossState.Attacking) SwitchState(BossState.Attacking);
+            }
+            else // Игрок дальше зоны атаки, но мы спровоцированы -> преследуем
+            {
+                if (currentState != BossState.Chasing) SwitchState(BossState.Chasing);
+            }
+        }
+        else // НЕ спровоцирован уроном
+        {
+            // Должен патрулировать
+            if (currentState != BossState.Patrolling)
+            {
+                SwitchState(BossState.Patrolling);
+            }
+        }
+    }
+
+
+    void SwitchState(BossState newState)
+    {
+        if (currentState == newState && newState != BossState.Patrolling) return; // Позволяем "обновить" патруль, если уже патрулирует
+
+        // Debug.Log($"Boss: {gameObject.name} switching from {currentState} to {newState}");
+        currentState = newState;
+
+        if (agent == null || !agent.isOnNavMesh && newState != BossState.Dead) // Для Dead агент может быть уже выключен
+        {
+            if (newState != BossState.Dead) Debug.LogWarning("Boss NavMeshAgent is null or not on NavMesh when trying to switch state to " + newState);
+            return;
+        }
+
+
         switch (currentState)
         {
             case BossState.Patrolling:
-                HandlePatrolling();
-                // Если isProvoked стал true (из TakeDamage), переключаемся
-                if (isProvoked)
+                agent.speed = patrolSpeed;
+                agent.isStopped = false; // Убедимся, что агент может двигаться
+                if (patrolPoints.Length > 0)
                 {
-                    SwitchToChaseState();
+                    if (agent.isOnNavMesh) agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+                }
+                else
+                {
+                    if (agent.isOnNavMesh) agent.ResetPath(); // Стоять на месте
                 }
                 break;
-
             case BossState.Chasing:
-                HandleChasing();
+                agent.speed = chaseSpeed;
+                agent.isStopped = false;
                 break;
-
             case BossState.Attacking:
-                HandleAttacking();
+                if (agent.isOnNavMesh) // Только если агент на NavMesh
+                {
+                    agent.isStopped = true;
+                    agent.ResetPath();
+                }
                 break;
-        }
-
-        // Обновление анимаций (пример)
-        if (animator != null && agent != null)
-        {
-            animator.SetFloat("Speed", agent.velocity.magnitude);
+            case BossState.Dead:
+                OnBossAIDeath();
+                break;
         }
     }
 
     void HandlePatrolling()
     {
-        if (agent == null || patrolPoints.Length == 0) return;
+        if (agent == null || !agent.isOnNavMesh || agent.isStopped || patrolPoints.Length == 0) return;
 
-        agent.speed = patrolSpeed;
         if (!agent.pathPending && agent.remainingDistance < waypointProximityThreshold)
         {
             currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
             agent.SetDestination(patrolPoints[currentPatrolIndex].position);
         }
-        // В этом состоянии босс не ищет игрока активно
     }
 
     void HandleChasing()
     {
-        if (agent == null || playerTransform == null) return;
-
-        agent.speed = chaseSpeed;
-        agent.SetDestination(playerTransform.position);
-
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-
-        if (distanceToPlayer <= attackRange)
-        {
-            SwitchToAttackState();
-        }
-        // Опционально: если игрок убежал слишком далеко, можно вернуться к патрулированию
-        // if (distanceToPlayer > someMaxChaseDistance) { SwitchToPatrolState(); isProvoked = false; }
+        if (agent == null || !agent.isOnNavMesh || agent.isStopped || playerTransform == null) return;
+        if (agent.destination != playerTransform.position) // Обновляем путь только если он изменился
+            agent.SetDestination(playerTransform.position);
     }
 
     void HandleAttacking()
     {
-        if (agent == null || playerTransform == null) return;
+        if (agent == null || playerTransform == null) return; // Агент может быть не на NavMesh, если он isStopped = true
 
-        agent.SetDestination(transform.position); // Остановиться для атаки
-        // Поворот к игроку
-        Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
-        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(directionToPlayer.x, 0, directionToPlayer.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
-
+        transform.LookAt(playerTransform.position); // Простой поворот к игроку
 
         if (currentAttackCooldown <= 0f)
         {
             PerformAttack();
             currentAttackCooldown = attackCooldown;
         }
-
-        // Проверка, не вышел ли игрок из зоны атаки
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-        if (distanceToPlayer > attackRange)
-        {
-            SwitchToChaseState();
-        }
     }
 
     void PerformAttack()
     {
-        Debug.Log("Босс атакует игрока!");
+        Debug.Log(gameObject.name + " атакует игрока!");
         if (animator != null)
         {
-            animator.SetTrigger("Attack"); // Предполагается, что есть триггер "Attack" в аниматоре
+            animator.SetTrigger("Attack");
         }
-        // Здесь логика нанесения урона игроку
-        // Например: playerTransform.GetComponent<PlayerHealth>().TakeDamage(bossDamage);
-    }
-
-    public void TakeDamage(float amount)
-    {
-        health -= amount;
-        Debug.Log($"Босс получил {amount} урона. Здоровье: {health}");
-
-        if (!isProvoked)
+        if (playerTransform != null)
         {
-            isProvoked = true;
-            Debug.Log("Босс спровоцирован!");
-            // Немедленно переключаемся на преследование, если босс был в патруле
-            if (currentState == BossState.Patrolling)
+            HealthSystem playerHealth = playerTransform.GetComponent<HealthSystem>();
+            if (playerHealth != null)
             {
-                SwitchToChaseState();
+                playerHealth.TakeDamage(attackDamage);
             }
         }
+    }
 
-        if (health <= 0)
+    public void NotifyDamageTaken(float amount)
+    {
+        if (currentState == BossState.Dead) return;
+
+        Debug.Log($"{gameObject.name} был уведомлен о получении {amount} урона. Текущее здоровье: {healthSystem.GetHealth()}");
+
+        if (!isProvokedByDamage)
         {
-            Die();
+            isProvokedByDamage = true;
+            Debug.Log(gameObject.name + " спровоцирован уроном!");
+            // Немедленно решаем, что делать, а не ждем следующего Update
+            DecideState();
+        }
+
+        // Проверка на смерть (хотя HealthSystem это уже делает для анимации)
+        // HealthSystem уже вызовет анимацию и isDead. Нам нужно только обновить состояние AI.
+        if (healthSystem.IsDead() && currentState != BossState.Dead)
+        {
+            SwitchState(BossState.Dead);
         }
     }
 
-    void Die()
+    private void OnBossAIDeath()
     {
-        Debug.Log("Босс побежден!");
-        if (animator != null)
+        Debug.Log("BossAI: " + gameObject.name + " побежден (AI cleanup)!");
+        if (agent != null && agent.isOnNavMesh) // Проверяем, существует ли еще агент
         {
-            animator.SetTrigger("Die"); // Предполагается, что есть триггер "Die"
+            agent.isStopped = true;
+            agent.enabled = false; // Отключаем компонент
         }
-        // Отключить компонент AI или уничтожить объект
-        // agent.enabled = false; // если есть NavMeshAgent
-        // this.enabled = false;
-        Destroy(gameObject, 3f); // Уничтожить через 3 секунды, чтобы анимация смерти проигралась
+        // gameObject.SetActive(false); // Или Destroy(gameObject, delay);
     }
 
-    void SwitchToChaseState()
+    void UpdateAnimatorParams()
     {
-        Debug.Log("Босс: Переход в состояние ПРЕСЛЕДОВАНИЯ");
-        currentState = BossState.Chasing;
-        if (agent != null) agent.speed = chaseSpeed;
-        if (animator != null) animator.SetBool("IsChasing", true); // Пример анимационного параметра
+        if (animator != null && agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            animator.SetFloat("Speed", agent.velocity.magnitude);
+        }
     }
 
-    void SwitchToAttackState()
-    {
-        Debug.Log("Босс: Переход в состояние АТАКИ");
-        currentState = BossState.Attacking;
-        if (animator != null) animator.SetBool("IsChasing", false); // Возможно, выключить анимацию бега
-    }
-
-    // Если нужно будет вернуться к патрулю (например, если игрок далеко убежал и босс "потерял" его)
-    // void SwitchToPatrolState()
-    // {
-    //     Debug.Log("Босс: Переход в состояние ПАТРУЛИРОВАНИЯ");
-    //     currentState = BossState.Patrolling;
-    //     isProvoked = false; // Сбрасываем провокацию
-    //     if (agent != null && patrolPoints.Length > 0)
-    //     {
-    //         agent.speed = patrolSpeed;
-    //         agent.SetDestination(patrolPoints[currentPatrolIndex].position);
-    //     }
-    //     if (animator != null) animator.SetBool("IsChasing", false);
-    // }
-
-    // Отрисовка радиусов в редакторе для удобства
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        if (playerTransform != null) Gizmos.DrawWireSphere(transform.position, attackRange); // Рисуем, только если есть игрок
 
         if (patrolPoints != null && patrolPoints.Length > 0)
         {
@@ -258,14 +295,8 @@ public class BossAI : MonoBehaviour
                 if (patrolPoints[i] != null)
                 {
                     Gizmos.DrawSphere(patrolPoints[i].position, 0.3f);
-                    if (i < patrolPoints.Length - 1 && patrolPoints[i + 1] != null)
-                    {
-                        Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[i + 1].position);
-                    }
-                    else if (patrolPoints.Length > 1 && patrolPoints[0] != null) // Замкнуть путь
-                    {
-                        Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[0].position);
-                    }
+                    if (i < patrolPoints.Length - 1 && patrolPoints[i + 1] != null) Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[i + 1].position);
+                    else if (patrolPoints.Length > 1 && patrolPoints[0] != null) Gizmos.DrawLine(patrolPoints[i].position, patrolPoints[0].position);
                 }
             }
         }

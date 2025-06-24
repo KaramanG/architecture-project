@@ -1,3 +1,4 @@
+// HitboxScript.cs
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,7 +6,7 @@ using UnityEngine;
 
 public class HitboxScript : MonoBehaviour
 {
-    [SerializeField] private PhysicalAttackSystem sourceAttack;
+    [SerializeField] private PhysicalAttackSystem sourceAttack; // Убедитесь, что это поле назначено в инспекторе
     [SerializeField] private List<LayerMask> targetLayers;
 
     private Collider hitboxCollider;
@@ -28,6 +29,7 @@ public class HitboxScript : MonoBehaviour
         bool layerIsTarget = false;
         foreach (LayerMask mask in targetLayers)
         {
+            // Проверяем, принадлежит ли слой объекта other к одному из целевых слоев
             if ((mask.value & (1 << other.gameObject.layer)) != 0)
             {
                 layerIsTarget = true;
@@ -36,18 +38,40 @@ public class HitboxScript : MonoBehaviour
         }
         if (!layerIsTarget) { return; }
 
-        if (hitList.Contains(other)) { return; }
+        if (hitList.Contains(other)) { return; } // Уже ударили эту цель в текущей атаке
 
         HealthSystem targetHealth = other.GetComponent<HealthSystem>();
-        targetHealth.TakeDamage(sourceAttack.GetDamage());
-        
-        Animator targetAnimator = other.GetComponent<Animator>();
-        targetAnimator.SetTrigger("Stun");
+        if (targetHealth == null) return; // У цели нет компонента здоровья
 
-        if (other.gameObject.layer == LayerMask.NameToLayer("Mobs"))
+        float damageAmount = 0f;
+        if (sourceAttack != null) // Получаем урон от источника атаки
+        {
+            damageAmount = sourceAttack.GetDamage(); // Предполагаем, что GetDamage() существует в PhysicalAttackSystem
+        }
+        else
+        {
+            Debug.LogWarning("SourceAttack не назначен в HitboxScript на " + gameObject.name);
+            return; // Не можем нанести урон без источника
+        }
+
+        targetHealth.TakeDamage(damageAmount);
+
+        // Попытка уведомить BossAI, если это босс
+        BossAI bossAI = other.GetComponent<BossAI>();
+        if (bossAI != null)
+        {
+            bossAI.NotifyDamageTaken(damageAmount);
+        }
+
+        // Логика оглушения для мобов
+        // Убедитесь, что слой "Mobs" правильно назван и используется
+        if (other.gameObject.layer == LayerMask.NameToLayer("Mobs")) // Используйте имя слоя, как оно задано в Unity
         {
             MobAI mobAI = other.GetComponent<MobAI>();
-            mobAI.TakeStun();
+            if (mobAI != null)
+            {
+                mobAI.TakeStun();
+            }
         }
 
         hitList.Add(other);

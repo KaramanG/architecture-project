@@ -3700,7 +3700,7 @@ Transform:
   m_GameObject: {fileID: 1007018169}
   serializedVersion: 2
   m_LocalRotation: {x: 0.09879876, y: -0, z: -0, w: 0.9951074}
-  m_LocalPosition: {x: 0.28443718, y: 0.98650026, z: -1.8593338}
+  m_LocalPosition: {x: 0.28443718, y: 0.98650026, z: -6.52}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4575,7 +4575,7 @@ Transform:
   m_GameObject: {fileID: 1174185719}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: 0, z: -1.96}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5137,7 +5137,7 @@ Transform:
   m_GameObject: {fileID: 1253181958}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.604}
+  m_LocalPosition: {x: 0, y: 0, z: -5.005}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -9500,9 +9500,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentState: 0
   playerTransform: {fileID: 0}
-  health: 100
-  detectionRadius: 20
   attackRange: 2
+  attackDamage: 15
   attackCooldown: 2
   patrolPoints: []
   patrolSpeed: 2
