@@ -1,118 +1,100 @@
 using UnityEngine;
-using System.Collections; // „D„|„‘ IEnumerator („u„ƒ„|„y „„€„~„p„t„€„q„‘„„„ƒ„‘ „x„p„t„u„‚„w„{„y)
+using System.Collections; 
 
 [RequireComponent(typeof(AudioSource))]
 public class ZombieAudio : MonoBehaviour
 {
     [Header("Audio Clips")]
-    [SerializeField] private AudioClip[] idleSounds;         // „H„r„…„{„y „q„u„x„t„u„z„ƒ„„„r„y„‘ („‚„„‰„p„~„y„u, „ƒ„„„€„~„)
-    [SerializeField] private AudioClip[] agroSounds;         // „H„r„…„{ „„‚„y „€„q„~„p„‚„…„w„u„~„y„y „y„s„‚„€„{„p („p„s„‚„u„ƒ„ƒ„y„r„~„„z „‚„„{)
-    [SerializeField] private AudioClip[] attackSounds;       // „H„r„…„{„y „p„„„p„{„y
-    [SerializeField] private AudioClip[] deathSounds;        // „H„r„…„{„y „ƒ„}„u„‚„„„y
-    [SerializeField] private AudioClip[] stunSounds;         // „H„r„…„{„y „„‚„y „€„s„|„…„Š„u„~„y„y
+    [SerializeField] private AudioClip[] idleSounds;         // Sounds played when idle (groans, shuffles)
+    [SerializeField] private AudioClip[] agroSounds;         // Sounds played when becoming aggressive (roars, screams)
+    [SerializeField] private AudioClip[] attackSounds;       // Sounds played during an attack
+    [SerializeField] private AudioClip[] deathSounds;        // Sounds played upon death
+    [SerializeField] private AudioClip[] stunSounds;         // Sounds played when stunned
 
     [Header("Sound Settings")]
-    [SerializeField] private float minIdleSoundInterval = 5f; // „M„y„~„y„}„p„|„„~„„z „y„~„„„u„‚„r„p„| „t„|„‘ „x„r„…„{„€„r „q„u„x„t„u„z„ƒ„„„r„y„‘
-    [SerializeField] private float maxIdleSoundInterval = 10f; // „M„p„{„ƒ„y„}„p„|„„~„„z „y„~„„„u„‚„r„p„|
+    [SerializeField] private float minIdleSoundInterval = 5f; // Minimum time between idle sounds
+    [SerializeField] private float maxIdleSoundInterval = 10f; // Maximum time between idle sounds
 
     private AudioSource audioSource;
-    private MobAI mobAI; // „R„ƒ„„|„{„p „~„p „€„ƒ„~„€„r„~„€„z „ƒ„{„‚„y„„„ AI
-    private HealthSystem healthSystem; // „R„ƒ„„|„{„p „~„p „ƒ„y„ƒ„„„u„}„… „x„t„€„‚„€„r„„‘
+    private MobAI mobAI; // Reference to the MobAI component
+    private HealthSystem healthSystem; // Reference to the HealthSystem component
 
-    private float nextIdleSoundTime;
-    private bool hasPlayedAgroSoundSinceLastIdle = false;
-    private bool hasPlayedDeathSound = false;
+    private float nextIdleSoundTime; // When the next idle sound can play
+    private bool hasPlayedAgroSoundSinceLastIdle = false; // Flag to prevent spamming agro sound
+    private bool hasPlayedDeathSound = false; // Flag to prevent playing death sound multiple times
 
-    // „R„€„ƒ„„„€„‘„~„y„u „t„|„‘ „€„„„ƒ„|„u„w„y„r„p„~„y„‘, „{„€„s„t„p „~„…„w„~„€ „„‚„€„y„s„‚„p„„„ „x„r„…„{ „q„u„x„t„u„z„ƒ„„„r„y„‘
-    private enum ZombieState
-    {
-        Idle,
-        Chasing,
-        Attacking,
-        Stunned, // „E„ƒ„|„y „… „„„u„q„‘ „u„ƒ„„„ „}„u„‡„p„~„y„{„p „€„s„|„…„Š„u„~„y„‘
-        Dead
-    }
-    private ZombieState currentState = ZombieState.Idle;
+    // Removed redundant ZombieState enum and currentState variable.
+    // The audio logic will now rely on the MobAI's state and direct method calls.
 
 
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
         mobAI = GetComponent<MobAI>();
-        healthSystem = GetComponent<HealthSystem>(); // „P„€„|„…„‰„p„u„} HealthSystem
+        healthSystem = GetComponent<HealthSystem>(); // Get HealthSystem component
 
         if (mobAI == null)
         {
-            Debug.LogError("MobAI component not found on this GameObject!", this);
-            enabled = false; // „O„„„{„|„„‰„p„u„} „ƒ„{„‚„y„„„, „u„ƒ„|„y „~„u„„ MobAI
+            Debug.LogError("MobAI component not found on " + gameObject.name + "! ZombieAudio will be disabled.", this);
+            enabled = false; // Disable this script if MobAI is missing, as it relies heavily on it
             return;
         }
         if (healthSystem == null)
         {
-            Debug.LogError("HealthSystem component not found on this GameObject!", this);
-            // „M„€„w„~„€ „~„u „€„„„{„|„„‰„p„„„, „~„€ „~„u„{„€„„„€„‚„„u „†„…„~„{„ˆ„y„y „~„u „q„…„t„…„„ „‚„p„q„€„„„p„„„ „{„€„‚„‚„u„{„„„~„€
+            Debug.LogWarning("HealthSystem component not found on " + gameObject.name + ". Death sound might not play correctly.", this);
+            // We don't disable the script entirely, as other sounds might still be needed
         }
 
-        // „O„„ˆ„y„€„~„p„|„„~„€: „„€„t„„y„ƒ„p„„„„ƒ„‘ „~„p „ƒ„€„q„„„„y„u „„€„|„…„‰„u„~„y„‘ „…„‚„€„~„p, „u„ƒ„|„y „€„~„€ „u„ƒ„„„ „r HealthSystem
+        // Optional: Subscribe to HealthSystem's damage event to play hurt sounds (if you have them)
         // if (healthSystem != null) healthSystem.OnTakeDamage += PlayHurtSound;
     }
 
     void Start()
     {
-        SetNextIdleSoundTime();
+        SetNextIdleSoundTime(); // Schedule the first idle sound
     }
 
     void Update()
     {
-        if (mobAI == null || !mobAI.enabled) // „E„ƒ„|„y MobAI „€„„„{„|„„‰„u„~ („~„p„„‚„y„}„u„‚, „„€„ƒ„|„u „ƒ„}„u„‚„„„y)
+        // If MobAI script is disabled (e.g., on death), handle death sound explicitly
+        // Note: The MobAI script itself disables its NavMeshAgent and Rigidbody on death.
+        // It's better if the MobAI *calls* PlayDeathSound when it dies, but this check can work as a fallback.
+        if (!mobAI.enabled && healthSystem != null && healthSystem.IsDead() && !hasPlayedDeathSound)
         {
-            if (healthSystem != null && healthSystem.IsDead() && !hasPlayedDeathSound)
-            {
-                // „^„„„€„„ „q„|„€„{ „~„p „ƒ„|„…„‰„p„z, „u„ƒ„|„y MobAI „€„„„{„|„„‰„p„u„„„ƒ„‘ „t„€ „r„„x„€„r„p PlayDeathSound
-                PlayDeathSoundInternal();
-            }
-            return;
+            PlayDeathSoundInternal(); // Play death sound if mobAI is disabled and mob is dead
+            return; // Stop updating if dead or MobAI is disabled
         }
+        
+        // If MobAI is null (error case handled in Awake), stop updating
+        if (mobAI == null) return;
 
-        // „O„q„~„€„r„|„‘„u„} „ƒ„€„ƒ„„„€„‘„~„y„u „x„€„}„q„y „~„p „€„ƒ„~„€„r„u MobAI
-        UpdateZombieState();
-
-        // „O„q„‚„p„q„€„„„{„p „x„r„…„{„€„r „r „x„p„r„y„ƒ„y„}„€„ƒ„„„y „€„„ „ƒ„€„ƒ„„„€„‘„~„y„‘
+        // Handle idle sounds based on timer and if the mob is currently considered "idle" by MobAI
+        // Accessing MobAI's state directly requires MobAI to expose it (e.g., make MobState public)
+        // A simpler approach is to assume idle sounds should play when not moving and not recently agroed/attacked.
         HandleIdleSounds();
     }
 
-    private void UpdateZombieState()
-    {
-        if (healthSystem != null && healthSystem.IsDead())
-        {
-            currentState = ZombieState.Dead;
-            return;
-        }
-
-        GameObject player = GameObject.FindGameObjectWithTag("Player"); // „N„u „€„‰„u„~„ „„†„†„u„{„„„y„r„~„€ „r Update, „~„€ „t„|„‘ „„‚„y„}„u„‚„p
-        if (player == null)
-        {
-            currentState = ZombieState.Idle; // „E„ƒ„|„y „y„s„‚„€„{„p „~„u„„, „x„€„}„q„y „q„u„x„t„u„z„ƒ„„„r„…„u„„
-            return;
-        }
-    }
-
-
+    // Handles playing idle sounds based on the timer and mob state
     private void HandleIdleSounds()
     {
-        if (currentState == ZombieState.Idle && Time.time >= nextIdleSoundTime)
+        // Only play idle sounds if it's time, the mob is not dead, and MobAI's NavMeshAgent is effectively stopped
+        // (Checking navMeshAgent.velocity.sqrMagnitude is a common way to see if it's moving)
+        // Add a small threshold (e.g., 0.1f) because NavMeshAgent velocity can be slightly > 0 even when stopped.
+        if (Time.time >= nextIdleSoundTime && (healthSystem == null || !healthSystem.IsDead()) && mobAI.navMeshAgent != null && mobAI.navMeshAgent.velocity.sqrMagnitude < 0.1f)
         {
             PlayRandomSound(idleSounds);
-            SetNextIdleSoundTime();
-            hasPlayedAgroSoundSinceLastIdle = false; // „R„q„‚„p„ƒ„„r„p„u„} „†„|„p„s „p„s„‚„€, „{„€„s„t„p „ƒ„~„€„r„p „q„u„x„t„u„z„ƒ„„„r„…„u„„
+            SetNextIdleSoundTime(); // Schedule the next idle sound
+            hasPlayedAgroSoundSinceLastIdle = false; // Reset agro flag when an idle sound plays
         }
     }
 
+    // Sets the timer for the next idle sound
     private void SetNextIdleSoundTime()
     {
         nextIdleSoundTime = Time.time + Random.Range(minIdleSoundInterval, maxIdleSoundInterval);
     }
 
+    // Plays a random clip from a given array
     private void PlayRandomSound(AudioClip[] clips, float volume = 1.0f)
     {
         if (audioSource == null || clips == null || clips.Length == 0)
@@ -125,69 +107,57 @@ public class ZombieAudio : MonoBehaviour
         }
     }
 
-    // --- „P„…„q„|„y„‰„~„„u „}„u„„„€„t„ „t„|„‘ „r„„x„€„r„p „y„x MobAI „y„|„y „t„‚„…„s„y„‡ „ƒ„{„‚„y„„„„€„r ---
+    // --- Methods called by MobAI or other scripts to trigger specific sounds ---
 
-    // „B„„x„„r„p„u„„„ƒ„‘, „{„€„s„t„p „x„€„}„q„y „~„p„‰„y„~„p„u„„ „„‚„u„ƒ„|„u„t„€„r„p„~„y„u („„u„‚„u„‡„€„t „y„x Idle „r Agro/Chase)
+    // Called when the zombie becomes aggressive (transition from Idle to Chase/Attack)
     public void PlayAgroSound()
     {
-        if (!hasPlayedAgroSoundSinceLastIdle && currentState != ZombieState.Idle) // „I„s„‚„p„u„} „„„€„|„„{„€ „u„ƒ„|„y „~„u „y„s„‚„p„|„y „ƒ „„€„ƒ„|„u„t„~„u„s„€ Idle
+        // Play the agro sound only if it hasn't been played since the last idle sound
+        if (!hasPlayedAgroSoundSinceLastIdle)
         {
             PlayRandomSound(agroSounds);
-            hasPlayedAgroSoundSinceLastIdle = true;
+            hasPlayedAgroSoundSinceLastIdle = true; // Set flag
         }
+        // Note: We don't reset hasPlayedAgroSoundSinceLastIdle here. It's reset in HandleIdleSounds.
     }
 
-    // „B„„x„„r„p„u„„„ƒ„‘ „„‚„y „p„„„p„{„u
+    // Called when the zombie performs an attack
     public void PlayAttackSound()
     {
-        if (currentState == ZombieState.Dead) return; // „N„u „p„„„p„{„€„r„p„„„, „u„ƒ„|„y „}„u„‚„„„r
+        if (healthSystem != null && healthSystem.IsDead()) return; // Don't play attack sound if dead
         PlayRandomSound(attackSounds);
     }
 
-
-    // „B„„x„„r„p„u„„„ƒ„‘ „„‚„y „ƒ„}„u„‚„„„y
+    // Called when the zombie dies
     public void PlayDeathSound()
     {
-        PlayDeathSoundInternal();
+        PlayDeathSoundInternal(); // Call internal method to handle logic
     }
 
+    // Internal logic for playing death sound
     private void PlayDeathSoundInternal()
     {
-        if (!hasPlayedDeathSound)
+        if (!hasPlayedDeathSound) // Ensure it only plays once
         {
-            // „O„ƒ„„„p„~„€„r„y„„„ „„„u„{„…„‹„y„u „x„r„…„{„y, „u„ƒ„|„y „~„…„w„~„€ („€„ƒ„€„q„u„~„~„€ „u„ƒ„|„y „„„„€ „q„„| „|„…„)
+            // Stop any currently playing sounds before playing the death sound
             if (audioSource.isPlaying)
             {
                 audioSource.Stop();
             }
             PlayRandomSound(deathSounds);
-            hasPlayedDeathSound = true;
-            currentState = ZombieState.Dead; // „T„q„u„t„y„}„ƒ„‘, „‰„„„€ „ƒ„€„ƒ„„„€„‘„~„y„u „€„q„~„€„r„|„u„~„€
+            hasPlayedDeathSound = true; // Set flag
         }
     }
 
-    // „B„„x„„r„p„u„„„ƒ„‘ „„‚„y „€„s„|„…„Š„u„~„y„y („u„ƒ„|„y „u„ƒ„„„ „„„p„{„p„‘ „}„u„‡„p„~„y„{„p)
+    // Called when the zombie is stunned
     public void PlayStunSound()
     {
-        if (currentState == ZombieState.Dead) return;
+        if (healthSystem != null && healthSystem.IsDead()) return; // Don't play stun sound if dead
         PlayRandomSound(stunSounds);
-        // „M„€„w„~„€ „t„€„q„p„r„y„„„ „|„€„s„y„{„… „„‚„u„‚„„r„p„~„y„‘ „t„‚„…„s„y„‡ „x„r„…„{„€„r
-        if (audioSource.isPlaying)
-        {
-            // audioSource.Stop(); // „Q„p„ƒ„{„€„}„}„u„~„„„y„‚„€„r„p„„„, „u„ƒ„|„y „x„r„…„{ „€„s„|„…„Š„u„~„y„‘ „t„€„|„w„u„~ „„‚„u„‚„„r„p„„„ „t„‚„…„s„y„u
-        }
-        currentState = ZombieState.Stunned; // „T„ƒ„„„p„~„p„r„|„y„r„p„u„} „ƒ„€„ƒ„„„€„‘„~„y„u
+        // PlayOneShot does not need to be stopped explicitly later.
     }
 
-    // „O„„ˆ„y„€„~„p„|„„~„€: „u„ƒ„|„y „~„…„w„~„€ „€„ƒ„„„p„~„€„r„y„„„ „x„r„…„{„y „€„s„|„…„Š„u„~„y„‘
-    public void StopStunSound()
-    {
-        // „L„€„s„y„{„p „€„ƒ„„„p„~„€„r„{„y „x„r„…„{„p „€„s„|„…„Š„u„~„y„‘, „u„ƒ„|„y „€„~ „x„p„ˆ„y„{„|„u„~ „y„|„y „t„|„y„„„u„|„„~„„z
-        // „D„|„‘ PlayOneShot „€„q„„‰„~„€ „~„u „„„‚„u„q„…„u„„„ƒ„‘
-    }
+    // Removed StopStunSound as it's unnecessary for PlayOneShot
 
-    // „M„u„„„€„t„ „t„|„‘ MobAI, „‰„„„€„q„ „„€„|„…„‰„p„„„ „x„~„p„‰„u„~„y„‘ „„‚„y„r„p„„„~„„‡ „„€„|„u„z („u„ƒ„|„y „~„u „‡„€„‰„u„Š„ „t„u„|„p„„„ „y„‡ public)
-    // „^„„„€ „„|„€„‡„p„‘ „„‚„p„{„„„y„{„p - „|„…„‰„Š„u, „‰„„„€„q„ MobAI „ƒ„p„} „…„„‚„p„r„|„‘„| „ƒ„r„€„u„z „|„€„s„y„{„€„z „y „r„„x„„r„p„| „}„u„„„€„t„ ZombieAudio
-    // public float GetAgroRadiusFromAudio() => mobAI.GetAgroRadius();
-    // public float GetStoppingDistanceFromAudio() => mobAI.GetStoppingDistance();
+    // Removed commented-out methods related to getting MobAI properties, as they are not used in the current logic.
 }

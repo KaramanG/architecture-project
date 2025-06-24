@@ -5169,6 +5169,10 @@ MonoBehaviour:
   smoothRotationSpeed: 150
   jumpForce: 2
   groundCheckDistance: 0.1
+  cameraTransform: {fileID: 0}
+  animator: {fileID: 0}
+  rb: {fileID: 0}
+  magicManaCost: 30
 --- !u!95 &1253181963
 Animator:
   serializedVersion: 5
@@ -5826,6 +5830,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Zondgbe (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 9205014676721525218, guid: d7ab026c118c93b4f8048e7333672c92, type: 3}
+      propertyPath: navMeshAgent
+      value: 
+      objectReference: {fileID: 1756424222}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7246,6 +7254,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1334402404}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!195 &1756424222 stripped
+NavMeshAgent:
+  m_CorrespondingSourceObject: {fileID: 1664448196225805762, guid: d7ab026c118c93b4f8048e7333672c92, type: 3}
+  m_PrefabInstance: {fileID: 1358015873}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1756992825
 GameObject:
   m_ObjectHideFlags: 0
@@ -9498,7 +9511,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7fb53b8ba85cbe438285d7969a1795e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentState: 0
   playerTransform: {fileID: 0}
   attackRange: 2
   attackDamage: 15
